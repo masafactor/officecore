@@ -38,7 +38,7 @@ const fmtMinutes = (m: number | null) => {
 }
 
 export default function Index({ auth, filters, attendances }: Props) {
-  const [date, setDate] = useState(filters.date)
+  const [date, setDate] = useState(filters.date ?? new Date().toISOString().slice(0, 10))
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -66,6 +66,7 @@ export default function Index({ auth, filters, attendances }: Props) {
                     className="mt-1 rounded-md border-gray-300"
                   />
                 </div>
+
                 <button
                   type="submit"
                   className="rounded-md bg-gray-900 px-4 py-2 text-white"
@@ -86,30 +87,47 @@ export default function Index({ auth, filters, attendances }: Props) {
                       <th className="border px-3 py-2 text-left text-xs text-gray-600">メール</th>
                       <th className="border px-3 py-2 text-left text-xs text-gray-600">出勤</th>
                       <th className="border px-3 py-2 text-left text-xs text-gray-600">退勤</th>
-                       <th className="border px-3 py-2 text-left text-xs text-gray-600">実働</th>
+                      <th className="border px-3 py-2 text-left text-xs text-gray-600">状態</th>
+                      <th className="border px-3 py-2 text-left text-xs text-gray-600">実働</th>
                       <th className="border px-3 py-2 text-left text-xs text-gray-600">メモ</th>
-                     
                     </tr>
                   </thead>
+
                   <tbody>
                     {attendances.data.length === 0 ? (
                       <tr>
-                        <td className="px-3 py-4 text-sm text-gray-600" colSpan={6}>
+                        <td className="px-3 py-4 text-sm text-gray-600" colSpan={7}>
                           この日の勤怠データはありません。
                         </td>
                       </tr>
                     ) : (
-                      attendances.data.map((row) => (
-                        <tr key={row.id}>
-                          <td className="border px-3 py-2 text-sm">{row.user.name}</td>
-                          <td className="border px-3 py-2 text-sm text-gray-600">{row.user.email}</td>
-                          <td className="border px-3 py-2 text-sm">{fmtTime(row.clock_in)}</td>
-                          <td className="border px-3 py-2 text-sm">{fmtTime(row.clock_out)}</td>
-                                                    <td className="border px-3 py-2 text-sm">{fmtMinutes(row.worked_minutes)}</td>
-                          <td className="border px-3 py-2 text-sm">{row.note ?? '—'}</td>
+                      attendances.data.map((row) => {
+                        const status = !row.clock_in
+                          ? '未出勤'
+                          : !row.clock_out
+                          ? '勤務中'
+                          : '退勤済'
 
-                        </tr>
-                      ))
+                        const statusClass = !row.clock_in
+                          ? 'text-red-600'
+                          : !row.clock_out
+                          ? 'text-blue-600'
+                          : 'text-gray-600'
+
+                        return (
+                          <tr key={row.id}>
+                            <td className="border px-3 py-2 text-sm">{row.user.name}</td>
+                            <td className="border px-3 py-2 text-sm text-gray-600">{row.user.email}</td>
+                            <td className="border px-3 py-2 text-sm">{fmtTime(row.clock_in)}</td>
+                            <td className="border px-3 py-2 text-sm">{fmtTime(row.clock_out)}</td>
+                            <td className="border px-3 py-2 text-sm">
+                              <span className={statusClass}>{status}</span>
+                            </td>
+                            <td className="border px-3 py-2 text-sm">{fmtMinutes(row.worked_minutes)}</td>
+                            <td className="border px-3 py-2 text-sm">{row.note ?? '—'}</td>
+                          </tr>
+                        )
+                      })
                     )}
                   </tbody>
                 </table>

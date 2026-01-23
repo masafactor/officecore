@@ -9,7 +9,22 @@ export default function Authenticated({
     header,
     children,
 }: PropsWithChildren<{ header?: ReactNode }>) {
-    const user = usePage().props.auth.user;
+
+    type PageProps = {
+  auth: {
+    user: {
+      id: number
+      name: string
+      email: string
+      role?: string
+    }
+  }
+}
+    // const user = usePage().props.auth.user;
+const { auth } = usePage<PageProps>().props
+  const user = auth?.user
+     const isAdmin = user?.role === 'admin'
+    
 
     const [showingNavigationDropdown, setShowingNavigationDropdown] =
         useState(false);
@@ -33,6 +48,16 @@ export default function Authenticated({
                                 >
                                     Dashboard
                                 </NavLink>
+
+                                 {/* ✅ 管理者だけ */}
+                                {isAdmin && (
+                                    <NavLink
+                                    href="/admin/attendances"
+                                    active={route().current('admin.attendances.*')}
+                                    >
+                                    勤怠一覧（管理者）
+                                    </NavLink>
+                                )}
                             </div>
                         </div>
 
@@ -137,7 +162,17 @@ export default function Authenticated({
                         >
                             Dashboard
                         </ResponsiveNavLink>
-                    </div>
+
+                          {/* ✅ 管理者のみ */}
+                        {isAdmin && (
+                            <ResponsiveNavLink
+                            href="/admin/attendances"
+                            active={route().current('admin.attendances.*')}
+                            >
+                            勤怠一覧（管理者）
+                            </ResponsiveNavLink>
+                        )}
+                     </div>
 
                     <div className="border-t border-gray-200 pb-1 pt-4">
                         <div className="px-4">

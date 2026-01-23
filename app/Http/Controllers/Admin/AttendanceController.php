@@ -59,12 +59,12 @@ class AttendanceController extends Controller
         });
 
 
-        return Inertia::render('Admin/Attendances/Index', [
+    return Inertia::render('Admin/Attendances/Index', [
             'filters' => [
                 'date' => $date,
             ],
             'attendances' => [
-                'data' => $items,
+                'data' => $items->values()->all(), // ✅ ここ
                 'links' => $attendances->linkCollection(),
                 'total' => $attendances->total(),
             ],

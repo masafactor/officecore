@@ -9,6 +9,7 @@ type AttendanceRow = {
   clock_out: string | null
   note: string | null
   user: { id: number; name: string; email: string }
+  worked_minutes: number | null
 }
 
 type Link = { url: string | null; label: string; active: boolean }
@@ -27,6 +28,13 @@ const fmtTime = (iso: string | null) => {
   if (!iso) return '—'
   const d = new Date(iso)
   return d.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })
+}
+
+const fmtMinutes = (m: number | null) => {
+  if (m == null) return '—'
+  const h = Math.floor(m / 60)
+  const mm = m % 60
+  return `${h}h ${mm}m`
 }
 
 export default function Index({ auth, filters, attendances }: Props) {
@@ -78,13 +86,15 @@ export default function Index({ auth, filters, attendances }: Props) {
                       <th className="border px-3 py-2 text-left text-xs text-gray-600">メール</th>
                       <th className="border px-3 py-2 text-left text-xs text-gray-600">出勤</th>
                       <th className="border px-3 py-2 text-left text-xs text-gray-600">退勤</th>
+                       <th className="border px-3 py-2 text-left text-xs text-gray-600">実働</th>
                       <th className="border px-3 py-2 text-left text-xs text-gray-600">メモ</th>
+                     
                     </tr>
                   </thead>
                   <tbody>
                     {attendances.data.length === 0 ? (
                       <tr>
-                        <td className="px-3 py-4 text-sm text-gray-600" colSpan={5}>
+                        <td className="px-3 py-4 text-sm text-gray-600" colSpan={6}>
                           この日の勤怠データはありません。
                         </td>
                       </tr>
@@ -95,7 +105,9 @@ export default function Index({ auth, filters, attendances }: Props) {
                           <td className="border px-3 py-2 text-sm text-gray-600">{row.user.email}</td>
                           <td className="border px-3 py-2 text-sm">{fmtTime(row.clock_in)}</td>
                           <td className="border px-3 py-2 text-sm">{fmtTime(row.clock_out)}</td>
+                                                    <td className="border px-3 py-2 text-sm">{fmtMinutes(row.worked_minutes)}</td>
                           <td className="border px-3 py-2 text-sm">{row.note ?? '—'}</td>
+
                         </tr>
                       ))
                     )}

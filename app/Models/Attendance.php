@@ -28,4 +28,20 @@ class Attendance extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+    public function workedMinutesForRule(\App\Models\WorkRule $rule): ?int
+    {
+        if (!$this->clock_in || !$this->clock_out) {
+            return null;
+        }
+
+        $total = $this->clock_out->diffInMinutes($this->clock_in);
+
+        $breakMinutes = \Carbon\Carbon::parse($rule->break_end)
+            ->diffInMinutes(\Carbon\Carbon::parse($rule->break_start));
+
+        $worked = $total - $breakMinutes;
+        return max(0, $worked);
+    }
+
 }

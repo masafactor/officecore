@@ -12,9 +12,10 @@ type Props = {
   auth: { user: { name: string } }
   today: string
   attendance: Attendance | null
+  workedMinutes: number | null
 }
 
-export default function Dashboard({ auth, today, attendance }: Props) {
+export default function Dashboard({ auth, today, attendance, workedMinutes }: Props) {
   const hasClockIn = !!attendance?.clock_in
   const hasClockOut = !!attendance?.clock_out
 
@@ -30,6 +31,13 @@ export default function Dashboard({ auth, today, attendance }: Props) {
     if (!iso) return '—'
     const d = new Date(iso)
     return d.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })
+  }
+
+  const fmtMinutes = (m: number | null) => {
+    if (m == null) return '—'
+    const h = Math.floor(m / 60)
+    const mm = m % 60
+    return `${h}h ${mm}m`
   }
 
   return (
@@ -48,15 +56,23 @@ export default function Dashboard({ auth, today, attendance }: Props) {
                 <h3 className="text-lg font-semibold">今日の勤怠</h3>
                 <div className="text-sm text-gray-600">日付：{today}</div>
 
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
                   <div className="rounded-lg border p-4">
                     <div className="text-xs text-gray-500">出勤</div>
                     <div className="text-xl font-semibold">{fmtTime(attendance?.clock_in ?? null)}</div>
                   </div>
+
                   <div className="rounded-lg border p-4">
                     <div className="text-xs text-gray-500">退勤</div>
                     <div className="text-xl font-semibold">{fmtTime(attendance?.clock_out ?? null)}</div>
                   </div>
+
+                  <div className="rounded-lg border p-4">
+                    <div className="text-xs text-gray-500">実働</div>
+                    <div className="text-xl font-semibold">{fmtMinutes(workedMinutes)}</div>
+                    <div className="text-xs text-gray-500 mt-1">（固定休憩を差し引き）</div>
+                  </div>
+
                   <div className="rounded-lg border p-4">
                     <div className="text-xs text-gray-500">状態</div>
                     <div className="text-xl font-semibold">

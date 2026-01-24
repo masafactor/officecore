@@ -49,15 +49,24 @@ const { auth } = usePage<PageProps>().props
                                     Dashboard
                                 </NavLink>
 
-                                 {/* ✅ 管理者だけ */}
                                 {isAdmin && (
+                                <>
                                     <NavLink
                                     href="/admin/attendances"
                                     active={route().current('admin.attendances.*')}
                                     >
                                     勤怠一覧（管理者）
                                     </NavLink>
+
+                                    <NavLink
+                                    href="/admin/reports/monthly"
+                                    active={route().current('admin.reports.monthly')}
+                                    >
+                                    月次集計（管理者）
+                                    </NavLink>
+                                </>
                                 )}
+                                
                             </div>
                         </div>
 
@@ -163,15 +172,24 @@ const { auth } = usePage<PageProps>().props
                             Dashboard
                         </ResponsiveNavLink>
 
-                          {/* ✅ 管理者のみ */}
                         {isAdmin && (
-                            <ResponsiveNavLink
-                            href="/admin/attendances"
-                            active={route().current('admin.attendances.*')}
-                            >
-                            勤怠一覧（管理者）
-                            </ResponsiveNavLink>
-                        )}
+                            <>
+                                <ResponsiveNavLink
+                                href="/admin/attendances"
+                                active={route().current('admin.attendances.*')}
+                                >
+                                勤怠一覧（管理者）
+                                </ResponsiveNavLink>
+
+                                <ResponsiveNavLink
+                                href="/admin/reports/monthly"
+                                active={route().current('admin.reports.monthly')}
+                                >
+                                月次集計（管理者）
+                                </ResponsiveNavLink>
+                            </>
+                            )}
+
                      </div>
 
                     <div className="border-t border-gray-200 pb-1 pt-4">

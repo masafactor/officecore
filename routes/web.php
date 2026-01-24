@@ -70,6 +70,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('attendance.clockOut');
 });
 
+
+Route::get('/admin/reports/monthly', [\App\Http\Controllers\Admin\MonthlyReportController::class, 'index'])
+    ->middleware(['auth', 'verified', 'admin'])
+    ->name('admin.reports.monthly');
+
+
 use App\Http\Controllers\Admin\AttendanceController as AdminAttendanceController;
 
 Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.')->group(function () {

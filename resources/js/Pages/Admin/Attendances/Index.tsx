@@ -1,6 +1,7 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout'
 import { Head, router } from '@inertiajs/react'
 import { useState } from 'react'
+import { usePage } from '@inertiajs/react'
 
 type AttendanceRow = {
   id: number
@@ -45,6 +46,24 @@ export default function Index({ auth, filters, attendances }: Props) {
     router.get('/admin/attendances', { date }, { preserveState: true })
   }
 
+  const [editingId, setEditingId] = useState<number | null>(null)
+  const [noteDraft, setNoteDraft] = useState<string>('')
+
+  const startEdit = (row: AttendanceRow) => {
+    setEditingId(row.id)
+    setNoteDraft(row.note ?? '')
+  }
+
+  const saveNote = (id: number) => {
+    router.patch(
+      `/admin/attendances/${id}/note`,
+      { note: noteDraft },
+      { preserveState: true, preserveScroll: true, onSuccess: () => setEditingId(null) }
+    )
+  }
+
+  const flash = usePage<any>().props.flash
+
   return (
     <AuthenticatedLayout
       header={<h2 className="text-xl font-semibold leading-tight text-gray-800">勤怠一覧（管理者）</h2>}
@@ -66,6 +85,11 @@ export default function Index({ auth, filters, attendances }: Props) {
                     className="mt-1 rounded-md border-gray-300"
                   />
                 </div>
+                {flash?.success && (
+                  <div className="rounded-md bg-green-50 p-3 text-sm text-green-700">
+                    {flash.success}
+                  </div>
+                )}
 
                 <button
                   type="submit"
@@ -124,7 +148,46 @@ export default function Index({ auth, filters, attendances }: Props) {
                               <span className={statusClass}>{status}</span>
                             </td>
                             <td className="border px-3 py-2 text-sm">{fmtMinutes(row.worked_minutes)}</td>
-                            <td className="border px-3 py-2 text-sm">{row.note ?? '—'}</td>
+                            <td className="border px-3 py-2 text-sm">
+                                {editingId === row.id ? (
+                                  <div className="space-y-2">
+                                    <textarea
+                                      value={noteDraft}
+                                      onChange={(e) => setNoteDraft(e.target.value)}
+                                      className="w-full rounded-md border-gray-300 text-sm"
+                                      rows={2}
+                                    />
+                                    <div className="flex gap-2">
+                                      <button
+                                        type="button"
+                                        onClick={() => saveNote(row.id)}
+                                        className="rounded-md bg-gray-900 px-3 py-1.5 text-white"
+                                      >
+                                        保存
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => setEditingId(null)}
+                                        className="rounded-md border px-3 py-1.5"
+                                      >
+                                        キャンセル
+                                      </button>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div className="flex items-center justify-between gap-3">
+                                    <span className="text-gray-700">{row.note ?? '—'}</span>
+                                    <button
+                                      type="button"
+                                      onClick={() => startEdit(row)}
+                                      className="rounded-md border px-2 py-1 text-xs"
+                                    >
+                                      編集
+                                    </button>
+                                  </div>
+                                )}
+                              </td>
+
                           </tr>
                         )
                       })

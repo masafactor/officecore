@@ -8,6 +8,7 @@ use App\Models\UserWorkRule;
 use App\Models\WorkRule;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Illuminate\Validation\Rule;
 
 class AttendanceController extends Controller
 {
@@ -70,4 +71,17 @@ class AttendanceController extends Controller
             ],
         ]);
     }
+
+    public function updateNote(Request $request, Attendance $attendance)
+    {
+        $validated = $request->validate([
+            'note' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        $attendance->note = $validated['note'] ?? null;
+        $attendance->save();
+
+        return back()->with('success', 'メモを更新しました。');
+    }
+
 }

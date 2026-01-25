@@ -88,5 +88,8 @@ Route::get('/admin/reports/monthly/csv', [\App\Http\Controllers\Admin\MonthlyRep
     ->middleware(['auth', 'verified', 'admin'])
     ->name('admin.reports.monthly.csv');
 
-
+Route::patch('/admin/attendances/{attendance}/note', [\App\Http\Controllers\Admin\AttendanceController::class, 'updateNote'])
+    ->middleware(['auth', 'verified', 'admin'])
+    ->name('admin.attendances.note.update');
+    
 require __DIR__.'/auth.php';

@@ -24,12 +24,19 @@ const fmtMinutes = (m: number | null) => {
   return `${h}h ${mm}m`
 }
 
+
+
 export default function Monthly({ auth, filters, rows }: Props) {
   const [month, setMonth] = useState(filters.month ?? new Date().toISOString().slice(0, 7))
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault()
     router.get('/admin/reports/monthly', { month }, { preserveState: true })
+  }
+
+  const downloadCsv = () => {
+  const q = new URLSearchParams({ month }).toString()
+  window.location.href = `/admin/reports/monthly/csv?${q}`
   }
 
   return (
@@ -57,6 +64,15 @@ export default function Monthly({ auth, filters, rows }: Props) {
                 <button type="submit" className="rounded-md bg-gray-900 px-4 py-2 text-white">
                   表示
                 </button>
+
+                <button
+                  type="button"
+                  onClick={downloadCsv}
+                  className="rounded-md border border-gray-300 bg-white px-4 py-2 text-gray-900"
+                >
+                  CSV出力
+                </button>
+
 
                 <div className="ml-auto text-sm text-gray-600">人数：{rows.length}</div>
               </form>

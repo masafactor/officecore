@@ -76,10 +76,17 @@ Route::get('/admin/reports/monthly', [\App\Http\Controllers\Admin\MonthlyReportC
     ->name('admin.reports.monthly');
 
 
+
 use App\Http\Controllers\Admin\AttendanceController as AdminAttendanceController;
 
 Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/attendances', [AdminAttendanceController::class, 'index'])->name('attendances.index');
 });
+
+
+Route::get('/admin/reports/monthly/csv', [\App\Http\Controllers\Admin\MonthlyReportController::class, 'csv'])
+    ->middleware(['auth', 'verified', 'admin'])
+    ->name('admin.reports.monthly.csv');
+
 
 require __DIR__.'/auth.php';

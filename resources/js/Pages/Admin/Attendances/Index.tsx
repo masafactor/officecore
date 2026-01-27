@@ -49,22 +49,56 @@ export default function Index({ auth, filters, attendances }: Props) {
   const [editingId, setEditingId] = useState<number | null>(null)
   const [noteDraft, setNoteDraft] = useState<string>('')
 
-  const startEdit = (row: AttendanceRow) => {
-    setEditingId(row.id)
-    setNoteDraft(row.note ?? '')
-  }
+ const startEdit = (row: AttendanceRow) => {
+  setEditingId(row.id)
+  setNoteDraft(row.note ?? '')
+  setClockInDraft(isoToHHMM(row.clock_in))
+  setClockOutDraft(isoToHHMM(row.clock_out))
+}
 
-  const saveNote = (id: number) => {
-    router.patch(
-      `/admin/attendances/${id}/note`,
-      { note: noteDraft },
-      { preserveState: true, preserveScroll: true, onSuccess: () => setEditingId(null) }
-    )
-  }
 
   const flash = usePage<any>().props.flash
 
-  return (
+
+const [clockInDraft, setClockInDraft] = useState<string>('')   // "HH:MM" or ""
+const [clockOutDraft, setClockOutDraft] = useState<string>('') // "HH:MM" or ""
+const isoToHHMM = (iso: string | null) => {
+  if (!iso) return ''
+  const d = new Date(iso)
+  const hh = String(d.getHours()).padStart(2, '0')
+  const mm = String(d.getMinutes()).padStart(2, '0')
+  return `${hh}:${mm}`
+}
+
+
+
+const cancelEdit = () => {
+  setEditingId(null)
+  setNoteDraft('')
+  setClockInDraft('')
+  setClockOutDraft('')
+}
+
+const save = (id: number) => {
+  router.patch(
+    `/admin/attendances/${id}`,
+    {
+      clock_in: clockInDraft || null,
+      clock_out: clockOutDraft || null,
+      note: noteDraft || null,
+    },
+    {
+      preserveState: true,
+      preserveScroll: true,
+      onSuccess: () => cancelEdit(),
+    }
+  )
+}
+
+
+
+
+return (
     <AuthenticatedLayout
       header={<h2 className="text-xl font-semibold leading-tight text-gray-800">勤怠一覧（管理者）</h2>}
     >
@@ -149,45 +183,71 @@ export default function Index({ auth, filters, attendances }: Props) {
                             </td>
                             <td className="border px-3 py-2 text-sm">{fmtMinutes(row.worked_minutes)}</td>
                             <td className="border px-3 py-2 text-sm">
-                                {editingId === row.id ? (
-                                  <div className="space-y-2">
+                              {editingId === row.id ? (
+                                <div className="space-y-2">
+                                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                                    <div>
+                                      <div className="text-xs text-gray-500">出勤（修正）</div>
+                                      <input
+                                        type="time"
+                                        value={clockInDraft}
+                                        onChange={(e) => setClockInDraft(e.target.value)}
+                                        className="mt-1 w-full rounded-md border-gray-300 text-sm"
+                                      />
+                                    </div>
+
+                                    <div>
+                                      <div className="text-xs text-gray-500">退勤（修正）</div>
+                                      <input
+                                        type="time"
+                                        value={clockOutDraft}
+                                        onChange={(e) => setClockOutDraft(e.target.value)}
+                                        className="mt-1 w-full rounded-md border-gray-300 text-sm"
+                                      />
+                                    </div>
+                                  </div>
+
+                                  <div>
+                                    <div className="text-xs text-gray-500">管理メモ</div>
                                     <textarea
                                       value={noteDraft}
                                       onChange={(e) => setNoteDraft(e.target.value)}
-                                      className="w-full rounded-md border-gray-300 text-sm"
+                                      placeholder="管理者用メモ（例：打刻漏れ申告あり、時刻を補正）"
+                                      className="mt-1 w-full rounded-md border-gray-300 text-sm"
                                       rows={2}
                                     />
-                                    <div className="flex gap-2">
-                                      <button
-                                        type="button"
-                                        onClick={() => saveNote(row.id)}
-                                        className="rounded-md bg-gray-900 px-3 py-1.5 text-white"
-                                      >
-                                        保存
-                                      </button>
-                                      <button
-                                        type="button"
-                                        onClick={() => setEditingId(null)}
-                                        className="rounded-md border px-3 py-1.5"
-                                      >
-                                        キャンセル
-                                      </button>
-                                    </div>
                                   </div>
-                                ) : (
-                                  <div className="flex items-center justify-between gap-3">
-                                    <span className="text-gray-700">{row.note ?? '—'}</span>
+
+                                  <div className="flex gap-2">
                                     <button
                                       type="button"
-                                      onClick={() => startEdit(row)}
-                                      className="rounded-md border px-2 py-1 text-xs"
+                                      onClick={() => save(row.id)}
+                                      className="rounded-md bg-gray-900 px-3 py-1.5 text-white"
                                     >
-                                      編集
+                                      保存
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={cancelEdit}
+                                      className="rounded-md border px-3 py-1.5"
+                                    >
+                                      キャンセル
                                     </button>
                                   </div>
-                                )}
-                              </td>
-
+                                </div>
+                              ) : (
+                                <div className="flex items-center justify-between gap-3">
+                                  <span className="text-gray-700">{row.note?.trim() ? row.note : '（管理メモなし）'}</span>
+                                  <button
+                                    type="button"
+                                    onClick={() => startEdit(row)}
+                                    className="rounded-md border px-2 py-1 text-xs"
+                                  >
+                                    編集
+                                  </button>
+                                </div>
+                              )}
+                            </td>
                           </tr>
                         )
                       })

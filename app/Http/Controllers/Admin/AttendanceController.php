@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Attendance;
 use App\Models\UserWorkRule;
 use App\Models\WorkRule;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Validation\Rule;
@@ -47,8 +48,8 @@ class AttendanceController extends Controller
             return [
                 'id' => $a->id,
                 'work_date' => $a->work_date->toDateString(),
-                'clock_in' => optional($a->clock_in)->toISOString(),
-                'clock_out' => optional($a->clock_out)->toISOString(),
+                'clock_in'  => optional($a->clock_in)->format('H:i'),
+                'clock_out' => optional($a->clock_out)->format('H:i'),
                 'worked_minutes' => $workedMinutes,
                 'note' => $a->note,
                 'user' => [
@@ -56,6 +57,7 @@ class AttendanceController extends Controller
                     'name' => $a->user->name,
                     'email' => $a->user->email,
                 ],
+                'updated_at' => $a->updated_at?->toISOString(),
             ];
         });
 
@@ -69,19 +71,38 @@ class AttendanceController extends Controller
                 'links' => $attendances->linkCollection(),
                 'total' => $attendances->total(),
             ],
+            
         ]);
     }
 
-    public function updateNote(Request $request, Attendance $attendance)
-    {
-        $validated = $request->validate([
-            'note' => ['nullable', 'string', 'max:500'],
-        ]);
+public function update(Request $request, Attendance $attendance)
+{
+    $validated = $request->validate([
+        'clock_in' => ['nullable', 'date_format:H:i'],
+        'clock_out' => ['nullable', 'date_format:H:i'],
+        'note' => ['nullable', 'string', 'max:500'],
+    ]);
 
-        $attendance->note = $validated['note'] ?? null;
-        $attendance->save();
+    $tz = config('app.timezone', 'Asia/Tokyo');
+    $date = $attendance->work_date->toDateString();
 
-        return back()->with('success', 'メモを更新しました。');
+    $attendance->clock_in = !empty($validated['clock_in'])
+        ? Carbon::createFromFormat('Y-m-d H:i', "{$date} {$validated['clock_in']}", $tz)
+        : null;
+
+    $attendance->clock_out = !empty($validated['clock_out'])
+        ? Carbon::createFromFormat('Y-m-d H:i', "{$date} {$validated['clock_out']}", $tz)
+        : null;
+
+    $attendance->note = $validated['note'] ?? null;
+
+    if ($attendance->clock_in && $attendance->clock_out && $attendance->clock_out->lt($attendance->clock_in)) {
+        return back()->withErrors(['clock_out' => '退勤時刻は出勤時刻より後にしてください。']);
     }
+
+    $attendance->save();
+
+    return back()->with('success', '勤怠を更新しました。');
+}
 
 }

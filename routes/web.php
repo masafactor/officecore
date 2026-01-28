@@ -50,8 +50,8 @@ Route::get('/dashboard', function () {
         'attendance' => $attendance ? [
             'id' => $attendance->id,
             'work_date' => $attendance->work_date->toDateString(),
-            'clock_in' => optional($attendance->clock_in)->toISOString(),
-            'clock_out' => optional($attendance->clock_out)->toISOString(),
+            'clock_in'  => optional($attendance->clock_in)->format('H:i'),
+            'clock_out' => optional($attendance->clock_out)->format('H:i'),
             'note' => $attendance->note,
         ] : null,
     ]);

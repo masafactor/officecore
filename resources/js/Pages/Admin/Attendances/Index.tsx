@@ -11,6 +11,7 @@ type AttendanceRow = {
   note: string | null
   user: { id: number; name: string; email: string }
   worked_minutes: number | null
+  updated_at: string | null
 }
 
 type Link = { url: string | null; label: string; active: boolean }
@@ -25,11 +26,10 @@ type Props = {
   }
 }
 
-const fmtTime = (iso: string | null) => {
-  if (!iso) return '—'
-  const d = new Date(iso)
-  return d.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })
+const fmtTime = (hhmm: string | null) => {
+  return hhmm ?? '—'
 }
+
 
 const fmtMinutes = (m: number | null) => {
   if (m == null) return '—'
@@ -49,11 +49,11 @@ export default function Index({ auth, filters, attendances }: Props) {
   const [editingId, setEditingId] = useState<number | null>(null)
   const [noteDraft, setNoteDraft] = useState<string>('')
 
- const startEdit = (row: AttendanceRow) => {
+const startEdit = (row: AttendanceRow) => {
   setEditingId(row.id)
   setNoteDraft(row.note ?? '')
-  setClockInDraft(isoToHHMM(row.clock_in))
-  setClockOutDraft(isoToHHMM(row.clock_out))
+  setClockInDraft(row.clock_in ?? '')
+  setClockOutDraft(row.clock_out ?? '')
 }
 
 
@@ -62,13 +62,7 @@ export default function Index({ auth, filters, attendances }: Props) {
 
 const [clockInDraft, setClockInDraft] = useState<string>('')   // "HH:MM" or ""
 const [clockOutDraft, setClockOutDraft] = useState<string>('') // "HH:MM" or ""
-const isoToHHMM = (iso: string | null) => {
-  if (!iso) return ''
-  const d = new Date(iso)
-  const hh = String(d.getHours()).padStart(2, '0')
-  const mm = String(d.getMinutes()).padStart(2, '0')
-  return `${hh}:${mm}`
-}
+
 
 
 
@@ -148,6 +142,7 @@ return (
                       <th className="border px-3 py-2 text-left text-xs text-gray-600">状態</th>
                       <th className="border px-3 py-2 text-left text-xs text-gray-600">実働</th>
                       <th className="border px-3 py-2 text-left text-xs text-gray-600">メモ</th>
+                      <th className="border px-3 py-2 text-left text-xs text-gray-600">最終更新</th>
                     </tr>
                   </thead>
 
@@ -247,6 +242,9 @@ return (
                                   </button>
                                 </div>
                               )}
+                            </td>
+                            <td className="border px-3 py-2 text-sm text-gray-600">
+                              {row.updated_at ? new Date(row.updated_at).toLocaleString('ja-JP') : '—'}
                             </td>
                           </tr>
                         )

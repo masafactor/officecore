@@ -29,19 +29,46 @@ class Attendance extends Model
         return $this->belongsTo(User::class);
     }
 
-    public function workedMinutesForRule(\App\Models\WorkRule $rule): ?int
-    {
-        if (!$this->clock_in || !$this->clock_out) {
-            return null;
-        }
-
-        $total = $this->clock_out->diffInMinutes($this->clock_in);
-
-        $breakMinutes = \Carbon\Carbon::parse($rule->break_end)
-            ->diffInMinutes(\Carbon\Carbon::parse($rule->break_start));
-
-        $worked = $total - $breakMinutes;
-        return max(0, $worked);
+public function workedMinutesForRule(WorkRule $rule): ?int
+{
+    if (!$this->clock_in || !$this->clock_out) {
+        return null;
     }
+
+    $start = $this->clock_in->copy();
+    $end   = $this->clock_out->copy();
+
+    if ($end->lte($start)) {
+        return 0;
+    }
+
+    $totalMinutes = $start->diffInMinutes($end);
+
+    // 休憩が未設定ならそのまま
+    if (!$rule->break_start || !$rule->break_end) {
+        return $totalMinutes;
+    }
+
+    // 休憩時間を同日の日時にする（work_date基準）
+    $date = $this->work_date->toDateString();
+
+    $breakStart = $start->copy()->setDateFrom($this->work_date)->setTimeFromTimeString($rule->break_start);
+    $breakEnd   = $start->copy()->setDateFrom($this->work_date)->setTimeFromTimeString($rule->break_end);
+
+    // 休憩が逆転してたら無視（安全策）
+    if ($breakEnd->lte($breakStart)) {
+        return $totalMinutes;
+    }
+
+    // 重なり分だけ引く
+    $overlapStart = $start->greaterThan($breakStart) ? $start : $breakStart;
+    $overlapEnd   = $end->lessThan($breakEnd) ? $end : $breakEnd;
+
+    $breakMinutes = $overlapEnd->gt($overlapStart)
+        ? $overlapStart->diffInMinutes($overlapEnd)
+        : 0;
+
+    return max(0, $totalMinutes - $breakMinutes);
+}
 
 }

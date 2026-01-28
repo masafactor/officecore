@@ -27,11 +27,8 @@ export default function Dashboard({ auth, today, attendance, workedMinutes }: Pr
     router.post(route('attendance.clockOut'))
   }
 
-  const fmtTime = (iso: string | null) => {
-    if (!iso) return '—'
-    const d = new Date(iso)
-    return d.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })
-  }
+const fmtTime = (hhmm: string | null) => hhmm ?? '—'
+
 
   const fmtMinutes = (m: number | null) => {
     if (m == null) return '—'

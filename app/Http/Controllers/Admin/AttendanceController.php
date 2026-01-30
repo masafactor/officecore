@@ -58,6 +58,10 @@ class AttendanceController extends Controller
                     'email' => $a->user->email,
                 ],
                 'updated_at' => $a->updated_at?->toISOString(),
+                'overtime_minutes' => $rule ? $a->overtimeMinutesForRule($rule) : null,
+                'night_minutes' => $a->nightMinutes(),
+                
+
             ];
         });
 

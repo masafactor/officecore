@@ -12,6 +12,9 @@ type AttendanceRow = {
   user: { id: number; name: string; email: string }
   worked_minutes: number | null
   updated_at: string | null
+  overtime_minutes: number | null
+  night_minutes: number | null
+
 }
 
 type Link = { url: string | null; label: string; active: boolean }
@@ -92,6 +95,7 @@ const save = (id: number) => {
 
 
 
+
 return (
     <AuthenticatedLayout
       header={<h2 className="text-xl font-semibold leading-tight text-gray-800">勤怠一覧（管理者）</h2>}
@@ -140,6 +144,8 @@ return (
                       <th className="border px-3 py-2 text-left text-xs text-gray-600">出勤</th>
                       <th className="border px-3 py-2 text-left text-xs text-gray-600">退勤</th>
                       <th className="border px-3 py-2 text-left text-xs text-gray-600">状態</th>
+                      <th className="border px-3 py-2 text-xs">残業</th>
+                      <th className="border px-3 py-2 text-xs">深夜</th>
                       <th className="border px-3 py-2 text-left text-xs text-gray-600">実働</th>
                       <th className="border px-3 py-2 text-left text-xs text-gray-600">メモ</th>
                       <th className="border px-3 py-2 text-left text-xs text-gray-600">最終更新</th>
@@ -175,6 +181,11 @@ return (
                             <td className="border px-3 py-2 text-sm">{fmtTime(row.clock_out)}</td>
                             <td className="border px-3 py-2 text-sm">
                               <span className={statusClass}>{status}</span>
+                            </td><td className="border px-3 py-2 text-sm">
+                              {fmtMinutes(row.overtime_minutes ?? null)}
+                            </td>
+                            <td className="border px-3 py-2 text-sm">
+                              {fmtMinutes(row.night_minutes ?? null)}
                             </td>
                             <td className="border px-3 py-2 text-sm">{fmtMinutes(row.worked_minutes)}</td>
                             <td className="border px-3 py-2 text-sm">

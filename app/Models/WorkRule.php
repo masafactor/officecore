@@ -15,12 +15,12 @@ class WorkRule extends Model
         'break_end',
     ];
 
-    protected $casts = [
-        'work_start'  => 'datetime:H:i',
-        'work_end'    => 'datetime:H:i',
-        'break_start' => 'datetime:H:i',
-        'break_end'   => 'datetime:H:i',
-    ];
+    // protected $casts = [
+    //     'work_start'  => 'datetime:H:i',
+    //     'work_end'    => 'datetime:H:i',
+    //     'break_start' => 'datetime:H:i',
+    //     'break_end'   => 'datetime:H:i',
+    // ];
 
     /**
      * この勤務ルールを使っているユーザー履歴

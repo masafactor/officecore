@@ -52,12 +52,30 @@ export default function Index({ auth, filters, attendances }: Props) {
   const [editingId, setEditingId] = useState<number | null>(null)
   const [noteDraft, setNoteDraft] = useState<string>('')
 
+  const [clockInDateDraft, setClockInDateDraft] = useState<string>('')
+  const [clockOutDateDraft, setClockOutDateDraft] = useState<string>('')
+
 const startEdit = (row: AttendanceRow) => {
   setEditingId(row.id)
-  setNoteDraft(row.note ?? '')
+
+  // 時刻は row が "H:i" で来てる前提
   setClockInDraft(row.clock_in ?? '')
   setClockOutDraft(row.clock_out ?? '')
+
+  // まず同日にしておく
+  setClockInDateDraft(row.work_date)
+  setClockOutDateDraft(row.work_date)
+
+  // 日跨ぎっぽい（退勤が出勤より小さい）なら退勤日を翌日に寄せる
+  if (row.clock_in && row.clock_out && row.clock_out < row.clock_in) {
+    setClockOutDateDraft(addDaysYMD(row.work_date, 1))
+  }
+
+  setNoteDraft(row.note ?? '')
 }
+
+
+
 
 
   const flash = usePage<any>().props.flash
@@ -74,13 +92,34 @@ const cancelEdit = () => {
   setNoteDraft('')
   setClockInDraft('')
   setClockOutDraft('')
+  setClockInDateDraft('')
+  setClockOutDateDraft('')
 }
+
+
+const todayYMD = () => new Date().toISOString().slice(0, 10)
+
+const pad2 = (n: number) => String(n).padStart(2, '0')
+
+const addDaysYMD = (ymd: string, days: number) => {
+  const [y, m, d] = ymd.split('-').map(Number)
+  const utc = new Date(Date.UTC(y, m - 1, d)) // UTCの0:00
+  utc.setUTCDate(utc.getUTCDate() + days)
+
+  const yy = utc.getUTCFullYear()
+  const mm = pad2(utc.getUTCMonth() + 1)
+  const dd = pad2(utc.getUTCDate())
+  return `${yy}-${mm}-${dd}`
+}
+
 
 const save = (id: number) => {
   router.patch(
     `/admin/attendances/${id}`,
     {
+      clock_in_date: clockInDateDraft || null,
       clock_in: clockInDraft || null,
+      clock_out_date: clockOutDateDraft || null,
       clock_out: clockOutDraft || null,
       note: noteDraft || null,
     },
@@ -91,6 +130,7 @@ const save = (id: number) => {
     }
   )
 }
+
 
 
 
@@ -192,24 +232,73 @@ return (
                               {editingId === row.id ? (
                                 <div className="space-y-2">
                                   <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                                    <div>
+                                    {/* 出勤 */}
+                                    <div className="rounded-md border p-3">
                                       <div className="text-xs text-gray-500">出勤（修正）</div>
-                                      <input
-                                        type="time"
-                                        value={clockInDraft}
-                                        onChange={(e) => setClockInDraft(e.target.value)}
-                                        className="mt-1 w-full rounded-md border-gray-300 text-sm"
-                                      />
+                                      <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                                        <div>
+                                          <div className="text-[11px] text-gray-500">日付</div>
+                                          <input
+                                            type="date"
+                                            value={clockInDateDraft}
+                                            onChange={(e) => setClockInDateDraft(e.target.value)}
+                                            className="mt-1 w-full rounded-md border-gray-300 text-sm"
+                                          />
+                                        </div>
+                                        <div>
+                                          <div className="text-[11px] text-gray-500">時刻</div>
+                                          <input
+                                            type="time"
+                                            value={clockInDraft}
+                                            onChange={(e) => setClockInDraft(e.target.value)}
+                                            className="mt-1 w-full rounded-md border-gray-300 text-sm"
+                                          />
+                                        </div>
+                                      </div>
                                     </div>
 
-                                    <div>
+                                    {/* 退勤 */}
+                                    <div className="rounded-md border p-3">
                                       <div className="text-xs text-gray-500">退勤（修正）</div>
-                                      <input
-                                        type="time"
-                                        value={clockOutDraft}
-                                        onChange={(e) => setClockOutDraft(e.target.value)}
-                                        className="mt-1 w-full rounded-md border-gray-300 text-sm"
-                                      />
+                                      <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                                        <div>
+                                          <div className="text-[11px] text-gray-500">日付</div>
+                                          <input
+                                            type="date"
+                                            value={clockOutDateDraft}
+                                            onChange={(e) => setClockOutDateDraft(e.target.value)}
+                                            className="mt-1 w-full rounded-md border-gray-300 text-sm"
+                                          />
+                                        </div>
+                                        <div>
+                                          <div className="text-[11px] text-gray-500">時刻</div>
+                                          <input
+                                            type="time"
+                                            value={clockOutDraft}
+                                            onChange={(e) => setClockOutDraft(e.target.value)}
+                                            className="mt-1 w-full rounded-md border-gray-300 text-sm"
+                                          />
+                                        </div>
+                                      </div>
+
+                                      <div className="mt-2 flex gap-2">
+                                        <button
+                                          type="button"
+                                          onClick={() =>
+                                            setClockOutDateDraft(addDaysYMD(clockOutDateDraft || row.work_date, 1))
+                                          }
+                                          className="rounded-md border px-2 py-1 text-xs"
+                                        >
+                                          退勤を翌日に
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={() => setClockOutDateDraft(row.work_date)}
+                                          className="rounded-md border px-2 py-1 text-xs"
+                                        >
+                                          退勤を当日に戻す
+                                        </button>
+                                      </div>
                                     </div>
                                   </div>
 
@@ -218,7 +307,6 @@ return (
                                     <textarea
                                       value={noteDraft}
                                       onChange={(e) => setNoteDraft(e.target.value)}
-                                      placeholder="管理者用メモ（例：打刻漏れ申告あり、時刻を補正）"
                                       className="mt-1 w-full rounded-md border-gray-300 text-sm"
                                       rows={2}
                                     />
@@ -243,7 +331,9 @@ return (
                                 </div>
                               ) : (
                                 <div className="flex items-center justify-between gap-3">
-                                  <span className="text-gray-700">{row.note?.trim() ? row.note : '（管理メモなし）'}</span>
+                                  <span className="text-gray-700">
+                                    {row.note?.trim() ? row.note : '（管理メモなし）'}
+                                  </span>
                                   <button
                                     type="button"
                                     onClick={() => startEdit(row)}
@@ -254,6 +344,7 @@ return (
                                 </div>
                               )}
                             </td>
+
                             <td className="border px-3 py-2 text-sm text-gray-600">
                               {row.updated_at ? new Date(row.updated_at).toLocaleString('ja-JP') : '—'}
                             </td>

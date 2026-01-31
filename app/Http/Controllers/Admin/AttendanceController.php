@@ -79,34 +79,53 @@ class AttendanceController extends Controller
         ]);
     }
 
+
+
 public function update(Request $request, Attendance $attendance)
 {
     $validated = $request->validate([
-        'clock_in' => ['nullable', 'date_format:H:i'],
-        'clock_out' => ['nullable', 'date_format:H:i'],
-        'note' => ['nullable', 'string', 'max:500'],
+        'clock_in_date'  => ['nullable', 'date_format:Y-m-d'],
+        'clock_in'       => ['nullable', 'date_format:H:i'],
+        'clock_out_date' => ['nullable', 'date_format:Y-m-d'],
+        'clock_out'      => ['nullable', 'date_format:H:i'],
+        'note'           => ['nullable', 'string', 'max:500'],
     ]);
 
-    $tz = config('app.timezone', 'Asia/Tokyo');
-    $date = $attendance->work_date->toDateString();
+    // 文字列を確実に null or string に寄せる
+    $clockInDate  = $validated['clock_in_date']  ?? null;
+    $clockInTime  = $validated['clock_in']       ?? null;
+    $clockOutDate = $validated['clock_out_date'] ?? null;
+    $clockOutTime = $validated['clock_out']      ?? null;
 
-    $attendance->clock_in = !empty($validated['clock_in'])
-        ? Carbon::createFromFormat('Y-m-d H:i', "{$date} {$validated['clock_in']}", $tz)
+    // date 未指定なら attendance.work_date を採用
+    $baseDate = $attendance->work_date?->toDateString() ?? now()->toDateString();
+    $clockInDate  = $clockInDate  ?: $baseDate;
+    $clockOutDate = $clockOutDate ?: $baseDate;
+
+    // datetime に組み立て（片方だけ入ってるケースも許容）
+    $clockIn  = $clockInTime
+        ? Carbon::createFromFormat('Y-m-d H:i', "{$clockInDate} {$clockInTime}")
         : null;
 
-    $attendance->clock_out = !empty($validated['clock_out'])
-        ? Carbon::createFromFormat('Y-m-d H:i', "{$date} {$validated['clock_out']}", $tz)
+    $clockOut = $clockOutTime
+        ? Carbon::createFromFormat('Y-m-d H:i', "{$clockOutDate} {$clockOutTime}")
         : null;
 
-    $attendance->note = $validated['note'] ?? null;
-
-    if ($attendance->clock_in && $attendance->clock_out && $attendance->clock_out->lt($attendance->clock_in)) {
-        return back()->withErrors(['clock_out' => '退勤時刻は出勤時刻より後にしてください。']);
+    // 保険：両方あるのに退勤が出勤以前なら、翌日に補正（UIが失敗してても救う）
+    if ($clockIn && $clockOut && $clockOut->lte($clockIn)) {
+        $clockOut->addDay();
     }
+
+    $attendance->clock_in  = $clockIn;
+    $attendance->clock_out = $clockOut;
+    $attendance->note      = $validated['note'] ?? null;
 
     $attendance->save();
 
-    return back()->with('success', '勤怠を更新しました。');
+    return redirect()
+        ->back()
+        ->with('success', '勤怠を更新しました。');
 }
+
 
 }

@@ -6,6 +6,9 @@ use App\Models\WorkRule;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
+use App\Http\Controllers\AttendanceCorrectionController;
+use App\Http\Controllers\Admin\AttendanceCorrectionController as AdminAttendanceCorrectionController;
+use App\Http\Controllers\Admin\AttendanceController as AdminAttendanceController;
 
 Route::get('/', function () {
     return Inertia::render('Welcome', [
@@ -77,7 +80,6 @@ Route::get('/admin/reports/monthly', [\App\Http\Controllers\Admin\MonthlyReportC
 
 
 
-use App\Http\Controllers\Admin\AttendanceController as AdminAttendanceController;
 
 Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/attendances', [AdminAttendanceController::class, 'index'])->name('attendances.index');
@@ -96,6 +98,27 @@ Route::patch('/admin/attendances/{attendance}/note', [\App\Http\Controllers\Admi
 Route::patch('/admin/attendances/{attendance}', [\App\Http\Controllers\Admin\AttendanceController::class, 'update'])
     ->middleware(['auth', 'verified', 'admin'])
     ->name('admin.attendances.update');
+
+
+
+
+
+// Route::middleware(['auth'])->group(function () {
+//     // 従業員：申請
+//     Route::post('/attendances/{attendance}/corrections', [AttendanceCorrectionController::class, 'store'])
+//         ->name('attendances.corrections.store');
+// });
+
+// Route::middleware(['auth', 'can:admin'])->prefix('admin')->name('admin.')->group(function () {
+//     // 管理者：申請一覧
+//     Route::get('/attendance-corrections', [AdminAttendanceCorrectionController::class, 'index'])
+//         ->name('attendance-corrections.index');
+// });
+
+Route::get('/admin/attendance-corrections', [\App\Http\Controllers\Admin\AttendanceCorrectionController::class, 'index'])
+    ->middleware(['auth', 'verified', 'admin'])
+    ->name('admin.attendance-corrections.index');
+
 
     
 require __DIR__.'/auth.php';

@@ -58,6 +58,13 @@ const { auth } = usePage<PageProps>().props
                                     勤怠一覧（管理者）
                                     </NavLink>
 
+                                     <NavLink
+                                    href="/admin/attendance-corrections"
+                                    active={route().current('admin.attendance-corrections.*')}
+                                    >
+                                    勤怠修正申請（管理者）
+                                    </NavLink>
+
                                     <NavLink
                                     href="/admin/reports/monthly"
                                     active={route().current('admin.reports.monthly')}
@@ -180,6 +187,13 @@ const { auth } = usePage<PageProps>().props
                                 >
                                 勤怠一覧（管理者）
                                 </ResponsiveNavLink>
+
+                                <NavLink
+                                href="/admin/attendance-corrections"
+                                active={route().current('admin.attendance-corrections.*')}
+                                >
+                                勤怠修正申請（管理者）
+                                </NavLink>
 
                                 <ResponsiveNavLink
                                 href="/admin/reports/monthly"

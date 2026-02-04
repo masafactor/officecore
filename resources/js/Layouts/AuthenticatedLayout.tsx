@@ -48,6 +48,13 @@ const { auth } = usePage<PageProps>().props
                                 >
                                     Dashboard
                                 </NavLink>
+                                 <NavLink
+                                    href="/attendances"
+                                    active={route().current('attendances.*')}
+                                    >
+                                    勤怠履歴
+                                </NavLink>
+
 
                                 {isAdmin && (
                                 <>
@@ -187,6 +194,14 @@ const { auth } = usePage<PageProps>().props
                                 >
                                 勤怠一覧（管理者）
                                 </ResponsiveNavLink>
+
+                                <ResponsiveNavLink
+                                href="/attendances"
+                                active={route().current('attendances.*')}
+                                >
+                                勤怠履歴
+                                </ResponsiveNavLink>
+
 
                                 <NavLink
                                 href="/admin/attendance-corrections"

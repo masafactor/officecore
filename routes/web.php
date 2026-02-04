@@ -9,6 +9,7 @@ use Inertia\Inertia;
 use App\Http\Controllers\AttendanceCorrectionController;
 use App\Http\Controllers\Admin\AttendanceCorrectionController as AdminAttendanceCorrectionController;
 use App\Http\Controllers\Admin\AttendanceController as AdminAttendanceController;
+use App\Http\Controllers\AttendanceHistoryController;
 
 Route::get('/', function () {
     return Inertia::render('Welcome', [
@@ -119,6 +120,9 @@ Route::get('/admin/attendance-corrections', [\App\Http\Controllers\Admin\Attenda
     ->middleware(['auth', 'verified', 'admin'])
     ->name('admin.attendance-corrections.index');
 
-
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('/attendances', [AttendanceHistoryController::class, 'index'])
+        ->name('attendances.index');
+});
     
 require __DIR__.'/auth.php';

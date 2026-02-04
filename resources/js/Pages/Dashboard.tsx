@@ -1,5 +1,7 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout'
 import { Head, router } from '@inertiajs/react'
+import AttendanceCorrectionForm from '@/Components/AttendanceCorrectionForm'
+
 
 type Attendance = {
   id: number
@@ -108,8 +110,11 @@ const fmtTime = (hhmm: string | null) => hhmm ?? '—'
               </section>
 
             </div>
+            <AttendanceCorrectionForm attendance={attendance} today={today} />
           </div>
+          
         </div>
+        
       </div>
     </AuthenticatedLayout>
   )

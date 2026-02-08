@@ -11,6 +11,7 @@ use App\Http\Controllers\Admin\AttendanceCorrectionController as AdminAttendance
 use App\Http\Controllers\Admin\AttendanceController as AdminAttendanceController;
 use App\Http\Controllers\AttendanceHistoryController;
 
+
 Route::get('/', function () {
     return Inertia::render('Welcome', [
         'canLogin' => Route::has('login'),
@@ -104,17 +105,25 @@ Route::patch('/admin/attendances/{attendance}', [\App\Http\Controllers\Admin\Att
 
 
 
-// Route::middleware(['auth'])->group(function () {
-//     // 従業員：申請
-//     Route::post('/attendances/{attendance}/corrections', [AttendanceCorrectionController::class, 'store'])
-//         ->name('attendances.corrections.store');
-// });
 
-// Route::middleware(['auth', 'can:admin'])->prefix('admin')->name('admin.')->group(function () {
-//     // 管理者：申請一覧
-//     Route::get('/attendance-corrections', [AdminAttendanceCorrectionController::class, 'index'])
-//         ->name('attendance-corrections.index');
-// });
+Route::middleware(['auth', 'verified', 'admin'])
+    ->prefix('admin')
+    ->name('admin.')
+    ->group(function () {
+
+        // 一覧
+        Route::get('/attendance-corrections', [AdminAttendanceCorrectionController::class, 'index'])
+            ->name('attendance-corrections.index');
+
+        // 承認
+        Route::post('/attendance-corrections/{correction}/approve', [AdminAttendanceCorrectionController::class, 'approve'])
+            ->name('attendance-corrections.approve');
+
+        // 却下
+        Route::post('/attendance-corrections/{correction}/reject', [AdminAttendanceCorrectionController::class, 'reject'])
+            ->name('attendance-corrections.reject');
+    });
+
 
 Route::get('/admin/attendance-corrections', [\App\Http\Controllers\Admin\AttendanceCorrectionController::class, 'index'])
     ->middleware(['auth', 'verified', 'admin'])

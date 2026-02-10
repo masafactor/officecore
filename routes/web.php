@@ -134,4 +134,16 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('attendances.index');
 });
     
+
+Route::middleware(['auth', 'verified', 'admin'])
+  ->prefix('admin')
+  ->name('admin.')
+  ->group(function () {
+      Route::get('/work-rules', [\App\Http\Controllers\Admin\WorkRuleController::class, 'edit'])
+          ->name('work-rules.edit');
+
+      Route::patch('/work-rules', [\App\Http\Controllers\Admin\WorkRuleController::class, 'update'])
+          ->name('work-rules.update');
+  });
+
 require __DIR__.'/auth.php';

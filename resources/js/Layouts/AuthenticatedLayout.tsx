@@ -65,6 +65,14 @@ const { auth } = usePage<PageProps>().props
                                     勤怠一覧（管理者）
                                     </NavLink>
 
+                                    <NavLink
+                                        href={route('admin.work-rules.edit')}
+                                        active={route().current('admin.work-rules.*')}
+                                    >
+                                        勤務ルール設定
+                                    </NavLink>
+
+
                                      <NavLink
                                     href="/admin/attendance-corrections"
                                     active={route().current('admin.attendance-corrections.*')}
@@ -201,6 +209,8 @@ const { auth } = usePage<PageProps>().props
                                 >
                                 勤怠履歴
                                 </ResponsiveNavLink>
+
+                                
 
 
                                 <NavLink

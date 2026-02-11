@@ -109,6 +109,15 @@ class Attendance extends Model
     // 内部ヘルパ
     // ==========
 
+    private function floorToQuarter(Carbon $dt): Carbon
+    {
+        // 15分単位に切り捨て（例: 09:14 → 09:00、09:29 → 09:15）
+        $m = (int) $dt->minute;
+        $floored = intdiv($m, 15) * 15;
+
+        return $dt->copy()->setTime($dt->hour, $floored, 0);
+    }
+
     private function normalizeShiftPeriod(): ?array
     {
         if (!$this->clock_in || !$this->clock_out) return null;
@@ -116,13 +125,23 @@ class Attendance extends Model
         $start = $this->clock_in->copy();
         $end   = $this->clock_out->copy();
 
-        // ✅ 日マタギ：退勤が出勤以前なら翌日に補正
+        // 日跨ぎ
         if ($end->lte($start)) {
             $end->addDay();
         }
 
+        // ✅ 15分切り捨て（Step1仕様）
+        $start = $this->floorToQuarter($start);
+        $end   = $this->floorToQuarter($end);
+
+        // 切り捨て後に逆転するケースは0扱い（安全策）
+        if ($end->lte($start)) {
+            return [$start, $start];
+        }
+
         return [$start, $end];
     }
+
 
     /**
      * "日付 + (時刻文字列)" から Carbon を作る
@@ -164,5 +183,7 @@ class Attendance extends Model
         // "HH:MM" を "HH:MM:00" に統一
         return preg_match('/^\d{2}:\d{2}$/', $time) ? "{$time}:00" : $time;
     }
+
+    
 }
 

@@ -55,6 +55,10 @@ const { auth } = usePage<PageProps>().props
                                     勤怠履歴
                                 </NavLink>
 
+                                <NavLink href={route('daily-reports.index')} active={route().current('daily-reports.*')}>
+                                勤務日報
+                                </NavLink>
+
 
                                 {isAdmin && (
                                 <>
@@ -209,6 +213,15 @@ const { auth } = usePage<PageProps>().props
                                 >
                                 勤怠履歴
                                 </ResponsiveNavLink>
+
+
+                                <ResponsiveNavLink
+                                href={route('daily-reports.index')}
+                                active={route().current('daily-reports.*')}
+                                >
+                                勤務日報
+                                </ResponsiveNavLink>
+
 
                                 
 

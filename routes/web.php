@@ -10,7 +10,7 @@ use App\Http\Controllers\AttendanceCorrectionController;
 use App\Http\Controllers\Admin\AttendanceCorrectionController as AdminAttendanceCorrectionController;
 use App\Http\Controllers\Admin\AttendanceController as AdminAttendanceController;
 use App\Http\Controllers\AttendanceHistoryController;
-
+use App\Http\Controllers\DailyReportController;
 
 Route::get('/', function () {
     return Inertia::render('Welcome', [
@@ -145,5 +145,10 @@ Route::middleware(['auth', 'verified', 'admin'])
       Route::patch('/work-rules', [\App\Http\Controllers\Admin\WorkRuleController::class, 'update'])
           ->name('work-rules.update');
   });
+
+  Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('/daily-reports', [DailyReportController::class, 'index'])->name('daily-reports.index');
+    Route::post('/daily-reports', [DailyReportController::class, 'store'])->name('daily-reports.store');
+});
 
 require __DIR__.'/auth.php';

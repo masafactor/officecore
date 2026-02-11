@@ -50,4 +50,10 @@ class User extends Authenticatable
     {
         return $this->hasMany(\App\Models\UserWorkRule::class);
     }
+
+    public function dailyReports()
+    {
+        return $this->hasMany(\App\Models\DailyReport::class);
+    }
+
 }

@@ -9,21 +9,24 @@ type Props = {
     work_end: string | null
     break_start: string | null
     break_end: string | null
+    rounding_unit_minutes?: number | null // ✅ 追加
   }
 }
 
 export default function Edit({ rule }: Props) {
   const flash = usePage<any>().props.flash
 
- const hhmm = (v: string | null) => (v ? v.slice(0, 5) : '')
+  const hhmm = (v: string | null) => (v ? v.slice(0, 5) : '')
 
   const { data, setData, patch, processing, errors } = useForm({
     work_start: hhmm(rule.work_start),
     work_end: hhmm(rule.work_end),
     break_start: hhmm(rule.break_start),
     break_end: hhmm(rule.break_end),
-  })
 
+    // ✅ 追加：selectは string で持つ（'' は controller 側で null→デフォルトに寄せる）
+    rounding_unit_minutes: rule.rounding_unit_minutes != null ? String(rule.rounding_unit_minutes) : '15',
+  })
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -71,6 +74,23 @@ export default function Edit({ rule }: Props) {
                     onChange={(v) => setData('break_end', v)}
                     error={errors.break_end}
                   />
+
+                  {/* ✅ 追加：切り捨て単位 */}
+                  <SelectField
+                    label="切り捨て単位（分）"
+                    value={data.rounding_unit_minutes}
+                    onChange={(v) => setData('rounding_unit_minutes', v)}
+                    error={errors.rounding_unit_minutes}
+                    options={[
+                      { value: '1', label: '1分' },
+                      { value: '5', label: '5分' },
+                      { value: '10', label: '10分' },
+                      { value: '15', label: '15分' },
+                      { value: '30', label: '30分' },
+                      { value: '60', label: '60分' },
+                    ]}
+                    help="勤務時間・残業時間の丸め（切り捨て）に使用します（Step1）"
+                  />
                 </div>
 
                 <button
@@ -114,6 +134,41 @@ function Field({
         onChange={(e) => onChange(e.target.value)}
         className="mt-1 w-full rounded-md border-gray-300 text-sm"
       />
+      {error && <div className="mt-1 text-xs text-red-600">{error}</div>}
+    </div>
+  )
+}
+
+function SelectField({
+  label,
+  value,
+  onChange,
+  error,
+  options,
+  help,
+}: {
+  label: string
+  value: string
+  onChange: (v: string) => void
+  error?: string
+  options: { value: string; label: string }[]
+  help?: string
+}) {
+  return (
+    <div>
+      <label className="block text-xs text-gray-600">{label}</label>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="mt-1 w-full rounded-md border-gray-300 text-sm"
+      >
+        {options.map((o) => (
+          <option key={o.value} value={o.value}>
+            {o.label}
+          </option>
+        ))}
+      </select>
+      {help && <div className="mt-1 text-[11px] text-gray-500">{help}</div>}
       {error && <div className="mt-1 text-xs text-red-600">{error}</div>}
     </div>
   )

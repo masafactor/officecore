@@ -14,13 +14,17 @@ class Attendance extends Model
         'clock_in',
         'clock_out',
         'note',
+        'rounding_unit_minutes',
     ];
 
     protected $casts = [
         'work_date' => 'date',
         'clock_in'  => 'datetime',
         'clock_out' => 'datetime',
+        'rounding_unit_minutes' => 'integer',
     ];
+
+
 
     public function user(): BelongsTo
     {
@@ -31,28 +35,19 @@ class Attendance extends Model
     // 公開API
     // ==========
 
-    public function workedMinutesForRule(WorkRule $rule): ?int
+
+
+    public function workedMinutesForRule(WorkRule $rule)
     {
         $period = $this->normalizeShiftPeriod();
         if (!$period) return null;
         [$start, $end] = $period;
 
-        $total = $start->diffInMinutes($end);
-
-        // 休憩が未設定ならそのまま
-        if (!$rule->break_start || !$rule->break_end) {
-            return $total;
+        // 早出は所定開始に合わせる（所定があるときだけ）
+        if ($rule->work_start) {
+            [$schedStart, $_] = $this->periodFromTimeRange($this->work_date->toDateString(), $rule->work_start, $rule->work_start);
+            // ↑ periodFromTimeRange は end<=start で翌日になるので、ここは dt() で作る方が安全
         }
-
-        [$breakStart, $breakEnd] = $this->periodFromTimeRange(
-            $this->work_date->toDateString(),
-            $rule->break_start,
-            $rule->break_end
-        );
-
-        $breakMinutes = $this->overlapMinutes($start, $end, $breakStart, $breakEnd);
-
-        return max(0, $total - $breakMinutes);
     }
 
     public function scheduledMinutesForRule(WorkRule $rule): ?int
@@ -80,15 +75,28 @@ class Attendance extends Model
         return max(0, $total - $breakMinutes);
     }
 
+
+
     public function overtimeMinutesForRule(WorkRule $rule): ?int
     {
-        $worked = $this->workedMinutesForRule($rule);
-        $scheduled = $this->scheduledMinutesForRule($rule);
+        if (!$this->clock_out || !$rule->work_start || !$rule->work_end) return null;
 
-        if ($worked === null || $scheduled === null) return null;
+        $date = $this->work_date->toDateString();
 
-        return max(0, $worked - $scheduled);
+        // 所定の勤務時間帯
+        [$schedStart, $schedEnd] = $this->periodFromTimeRange($date, $rule->work_start, $rule->work_end);
+
+        $actualOut = $this->clock_out->copy();
+
+        // 残業は所定終了より後だけ
+        $raw = max(0, $schedEnd->diffInMinutes($actualOut, false));
+
+        $unit = max(1, (int) ($rule->rounding_unit_minutes ?? 10));
+
+        // 端数切り捨て（例: 19分 -> 10分、29分 -> 20分）
+        return intdiv($raw, $unit) * $unit;
     }
+
 
     public function nightMinutes(): ?int
     {

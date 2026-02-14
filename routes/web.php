@@ -145,7 +145,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/attendances', [AttendanceHistoryController::class, 'index'])
         ->name('attendances.index');
 });
-    
+
+
+Route::post('/attendances/{attendance}/corrections', [AttendanceCorrectionController::class, 'store'])
+    ->middleware('auth')
+    ->name('attendances.corrections.store');
+
 
 Route::middleware(['auth', 'verified', 'admin'])
   ->prefix('admin')

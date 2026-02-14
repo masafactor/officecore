@@ -59,7 +59,7 @@ class AttendanceController extends Controller
                 ],
                 'updated_at' => $a->updated_at?->toISOString(),
                 'overtime_minutes' => $rule ? $a->overtimeMinutesForRule($rule) : null,
-                'night_minutes' => $a->nightMinutes(),
+                'night_minutes' => $a->nightMinutesForRule($rule),
                 
 
             ];

@@ -13,6 +13,7 @@ class WorkRule extends Model
         'work_end',
         'break_start',
         'break_end',
+        'rounding_unit_minutes',
     ];
 
        protected $casts = [
@@ -20,6 +21,7 @@ class WorkRule extends Model
         'work_end'    => 'string',
         'break_start' => 'string',
         'break_end'   => 'string',
+        'rounding_unit_minutes' => 'integer',
     ];
 
     /**

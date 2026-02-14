@@ -40,6 +40,16 @@ Route::get('/dashboard', function () {
         })
         ->first();
 
+    $missingClockOutDates = Attendance::query()
+    ->where('user_id', $user->id)
+    ->whereNotNull('clock_in')
+    ->whereNull('clock_out')
+    ->orderByDesc('work_date')
+    ->limit(10)
+    ->pluck('work_date')
+    ->map(fn ($d) => $d->toDateString()); // castsでdateなら Carbon になる
+
+
     if (!$workRule) {
         $workRule = WorkRule::where('name', '通常勤務')->first();
     }
@@ -50,16 +60,18 @@ Route::get('/dashboard', function () {
     }
 
     return Inertia::render('Dashboard', [
-        'today' => $today,
-        'workedMinutes' => $workedMinutes,
-        'attendance' => $attendance ? [
-            'id' => $attendance->id,
-            'work_date' => $attendance->work_date->toDateString(),
-            'clock_in'  => optional($attendance->clock_in)->format('H:i'),
-            'clock_out' => optional($attendance->clock_out)->format('H:i'),
-            'note' => $attendance->note,
-        ] : null,
-    ]);
+    'today' => $today,
+    'workedMinutes' => $workedMinutes,
+    'missingClockOutDates' => $missingClockOutDates,
+    'attendance' => $attendance ? [
+        'id' => $attendance->id,
+        'work_date' => $attendance->work_date->toDateString(),
+        'clock_in'  => optional($attendance->clock_in)->format('H:i'),
+        'clock_out' => optional($attendance->clock_out)->format('H:i'),
+        'note' => $attendance->note,
+    ] : null,
+]);
+
 })->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::middleware('auth')->group(function () {

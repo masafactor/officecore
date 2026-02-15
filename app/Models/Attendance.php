@@ -30,12 +30,23 @@ class Attendance extends Model
     // ==========
     // 公開API（Step1）
     // ==========
+    //
+    // 方針（Step1）
+    // - 実績の「時刻」は丸めない（clock_in / clock_out は生のまま扱う）
+    // - 早出は所定開始に合わせる（所定開始より前は無視）
+    // - 休憩は勤務区間と被った分だけ控除
+    // - 丸めは「合計分」に対して WorkRule.rounding_unit_minutes で切り捨て（最後にだけ）
+    //
 
     /**
      * 実働分（Step1）
      * - 早出は所定開始に丸め（所定開始より前の実績は無視）
      * - 休憩は勤務区間と被った分だけ控除
-     * - 丸めは WorkRule.rounding_unit_minutes で切り捨て
+     * - 丸めは「合計分」で切り捨て（WorkRule.rounding_unit_minutes）
+     *
+     * NOTE:
+     * - 実働を「所定内だけ」にする（残業と二重計上しない）ため、終了は min(実績退勤, 所定終了) にしている。
+     *   もし「実働=所定外も含めた全勤務」にしたいなら、$end を $actualEnd に変更し、表示側の意味付けを調整すること。
      */
     public function workedMinutesForRule(WorkRule $rule): ?int
     {
@@ -44,8 +55,8 @@ class Attendance extends Model
 
         $unit = $this->roundingUnitForRule($rule);
 
-        // 実績区間（unitで切り捨て）
-        [$actualStart, $actualEnd] = $this->actualPeriodRounded($unit);
+        // 実績区間（丸めなし / 日跨ぎ補正あり）
+        [$actualStart, $actualEnd] = $this->actualPeriodRaw();
         if ($actualEnd->lte($actualStart)) return 0;
 
         $date = $this->work_date->toDateString();
@@ -53,24 +64,26 @@ class Attendance extends Model
         // 所定区間
         [$schedStart, $schedEnd] = $this->periodFromTimeRange($date, $rule->work_start, $rule->work_end);
 
-        // Step1: 早出は所定開始に丸める（開始は max(実績開始, 所定開始)）
+        // 早出カット：開始は max(実績開始, 所定開始)
         $start = $actualStart->lt($schedStart) ? $schedStart : $actualStart;
 
-        // Step1: 勤務は所定終了を超えた実績も「実働」には含める（※残業は別関数で扱う）
-        // もし「実働=所定内だけ」にしたいなら、ここを min($actualEnd, $schedEnd) にする
-        $end = $actualEnd;
+        // 実働（所定内）：終了は min(実績退勤, 所定終了)
+        $end = $actualEnd->gt($schedEnd) ? $schedEnd : $actualEnd;
 
         if ($end->lte($start)) return 0;
 
         $worked = $start->diffInMinutes($end);
 
-        // 休憩控除（勤務区間と被った場合のみ）
+        // 休憩控除（勤務区間と被った分だけ）
         if ($rule->break_start && $rule->break_end) {
             [$breakStart, $breakEnd] = $this->periodFromTimeRange($date, $rule->break_start, $rule->break_end);
             $worked -= $this->overlapMinutes($start, $end, $breakStart, $breakEnd);
         }
 
-        return max(0, $worked);
+        $worked = max(0, $worked);
+
+        // 合計分で切り捨て（ここだけ丸め）
+        return $this->floorMinutes($worked, $unit);
     }
 
     /**
@@ -106,23 +119,23 @@ class Attendance extends Model
      * 残業分（Step1）
      * - 残業は所定終了以降のみ
      * - 休憩と被った分は控除（ルール上の休憩帯が残業区間と被る場合）
-     * - 丸めは WorkRule.rounding_unit_minutes で切り捨て
+     * - 丸めは「合計分」で切り捨て（WorkRule.rounding_unit_minutes）
      */
     public function overtimeMinutesForRule(WorkRule $rule): ?int
     {
-        if (!$this->clock_out) return null;
+        if (!$this->clock_in || !$this->clock_out) return null;
         if (!$rule->work_end) return null;
 
         $unit = $this->roundingUnitForRule($rule);
-
         $date = $this->work_date->toDateString();
 
         // 所定終了（残業開始点）
         $schedEnd = $this->dt($date, $rule->work_end);
 
-        // 実績退勤（unitで切り捨てしてから計算すると “端数の扱い” が一貫する）
-        $actualOut = $this->floorToUnit($this->clock_out->copy(), $unit);
+        // 実績退勤（丸めなし / 日跨ぎ補正あり）
+        [, $actualOut] = $this->actualPeriodRaw();
 
+        // 所定終了以前は残業なし
         if ($actualOut->lte($schedEnd)) return 0;
 
         $oStart = $schedEnd;
@@ -137,21 +150,22 @@ class Attendance extends Model
 
         $raw = max(0, $oStart->diffInMinutes($oEnd) - $breakOverlap);
 
-        // 端数切り捨て
-        return intdiv($raw, $unit) * $unit;
+        // 合計分で切り捨て
+        return $this->floorMinutes($raw, $unit);
     }
 
     /**
      * 深夜分（Step2以降想定）
-     * ※丸めは WorkRule の unit を使ってもよいが、ここでは「実績丸め(unit)」を使うため引数を追加している
+     * - 実績の「時刻」は丸めずに重なり分を計算
+     * - 丸めを入れる場合は「合計分」で切り捨て（ここでは unit に揃える）
      */
     public function nightMinutesForRule(WorkRule $rule): ?int
     {
+        if (!$this->clock_in || !$this->clock_out) return null;
+
         $unit = $this->roundingUnitForRule($rule);
 
-        $period = $this->actualPeriodRounded($unit);
-        if (!$period) return null;
-        [$start, $end] = $period;
+        [$start, $end] = $this->actualPeriodRaw();
 
         $date = $this->work_date->toDateString();
 
@@ -159,7 +173,9 @@ class Attendance extends Model
         $nightStart = $this->dt($date, '22:00');
         $nightEnd   = $this->dt($date, '05:00')->addDay();
 
-        return $this->overlapMinutes($start, $end, $nightStart, $nightEnd);
+        $raw = $this->overlapMinutes($start, $end, $nightStart, $nightEnd);
+
+        return $this->floorMinutes($raw, $unit);
     }
 
     // ==========
@@ -168,38 +184,28 @@ class Attendance extends Model
 
     private function roundingUnitForRule(WorkRule $rule): int
     {
-        // デフォルトは 10 としているが、あなたの運用で 15 が基本なら 15 にしてOK
+        // デフォルトは 10（運用が 15 基本なら 15 に変更してOK）
         return max(1, (int) ($rule->rounding_unit_minutes ?? 10));
     }
 
-    private function floorToUnit(Carbon $dt, int $unit): Carbon
+    private function floorMinutes(int $minutes, int $unit): int
     {
         $unit = max(1, $unit);
-        $m = (int) $dt->minute;
-        $floored = intdiv($m, $unit) * $unit;
-        return $dt->copy()->setTime($dt->hour, $floored, 0);
+        $minutes = max(0, $minutes);
+        return intdiv($minutes, $unit) * $unit;
     }
 
     /**
-     * 実績区間を作って unit で切り捨て
+     * 実績区間を作る（丸めなし）
      * - 日跨ぎ許可（clock_out <= clock_in なら翌日）
      */
-    private function actualPeriodRounded(int $unit): ?array
+    private function actualPeriodRaw(): array
     {
-        if (!$this->clock_in || !$this->clock_out) return null;
-
         $start = $this->clock_in->copy();
         $end   = $this->clock_out->copy();
 
         if ($end->lte($start)) {
             $end->addDay();
-        }
-
-        $start = $this->floorToUnit($start, $unit);
-        $end   = $this->floorToUnit($end, $unit);
-
-        if ($end->lte($start)) {
-            return [$start, $start];
         }
 
         return [$start, $end];
@@ -245,4 +251,18 @@ class Attendance extends Model
         // "HH:MM" を "HH:MM:00" に統一
         return preg_match('/^\d{2}:\d{2}$/', $time) ? "{$time}:00" : $time;
     }
+
+    /**
+     * 総労働時間（表示用）
+     * = 所定内実働 + 残業
+     */
+    public function totalMinutesForRule(WorkRule $rule): ?int
+    {
+        $w = $this->workedMinutesForRule($rule);
+        $o = $this->overtimeMinutesForRule($rule);
+
+        if ($w === null && $o === null) return null;
+        return (int)($w ?? 0) + (int)($o ?? 0);
+    }
+
 }

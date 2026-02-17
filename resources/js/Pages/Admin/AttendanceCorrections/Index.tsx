@@ -15,25 +15,17 @@ type CorrectionRow = {
 
   attendance: {
     id: number
-    work_date: string | null
-    clock_in: string | null // "HH:MM"
-    clock_out: string | null
-  }
+    work_date: string | null // "YYYY-MM-DD"
+    clock_in: string | null  // "HH:MM"
+    clock_out: string | null // "HH:MM"
+    is_next_day: boolean      // 元が翌日かどうか（表示用）
+  } | null
 
-  user: {
-    id: number
-    name: string
-    email: string
-  }
-
-  requester: {
-    id: number
-    name: string
-  }
+  user: { id: number; name: string; email: string } | null
+  requester: { id: number; name: string } | null
 }
 
 type Props = {
-  auth: { user: { name: string } }
   corrections: {
     data: CorrectionRow[]
     links: Link[]
@@ -41,9 +33,10 @@ type Props = {
   }
 }
 
-const fmtYmd = (ymd: string | null) => (ymd ? ymd.replaceAll('-', '/') : '—')
-const fmtTime = (t: string | null) => t ?? '—'
+const fmtYmd = (ymd: string | null) => (ymd ? ymd.replaceAll('-', '/') : '')
+const fmtTime = (t: string | null) => t ?? ''
 const toHHmm = (datetime: string | null) => (datetime ? datetime.slice(11, 16) : null)
+const toYmd = (datetime: string | null) => (datetime ? datetime.slice(0, 10) : null)
 
 const fmtDateTime = (s: string | null) => {
   if (!s) return '—'
@@ -55,46 +48,59 @@ const fmtDateTime = (s: string | null) => {
   }
 }
 
-const statusLabel = (s: CorrectionRow['status']) => {
-  switch (s) {
-    case 'pending':
-      return '未処理'
-    case 'approved':
-      return '承認'
-    case 'rejected':
-      return '却下'
-  }
+const fmtClockOut = (clockOut: string | null, isNextDay: boolean | undefined) => {
+  if (!clockOut) return ''
+  return isNextDay ? `${clockOut}（翌日）` : clockOut
 }
 
-const statusClass = (s: CorrectionRow['status']) => {
-  switch (s) {
-    case 'pending':
-      return 'text-yellow-700 bg-yellow-50 border-yellow-200'
-    case 'approved':
-      return 'text-green-700 bg-green-50 border-green-200'
-    case 'rejected':
-      return 'text-red-700 bg-red-50 border-red-200'
-  }
+// 申請（after）が翌日か判定：work_date と clock_out_at の日付差
+const isNextDayFromRequest = (workDate: string | null, clockOutAt: string | null) => {
+  if (!workDate || !clockOutAt) return false
+  const reqYmd = toYmd(clockOutAt)
+  return !!reqYmd && reqYmd !== workDate
 }
 
-const changed = (before: string | null, after: string | null) => (before ?? '') !== (after ?? '')
+const statusLabel = (s: CorrectionRow['status']) => (s === 'pending' ? '未処理' : s === 'approved' ? '承認' : '却下')
+const statusClass = (s: CorrectionRow['status']) =>
+  s === 'pending'
+    ? 'text-yellow-700 bg-yellow-50 border-yellow-200'
+    : s === 'approved'
+      ? 'text-green-700 bg-green-50 border-green-200'
+      : 'text-red-700 bg-red-50 border-red-200'
 
 export default function Index({ corrections }: Props) {
   const flash = usePage<any>().props.flash
   const rows = corrections?.data ?? []
-
   const pendingCount = useMemo(() => rows.filter((r) => r?.status === 'pending').length, [rows])
 
-  // 1件だけ編集（開いてるやつ）
   const [editingId, setEditingId] = useState<number | null>(null)
-  const [clockInDraft, setClockInDraft] = useState<string>('') // "HH:MM"
+
+  // 反映する値（draft）
+  const [clockInDraft, setClockInDraft] = useState<string>('')   // "HH:MM"
   const [clockOutDraft, setClockOutDraft] = useState<string>('') // "HH:MM"
+  const [clockOutNextDayDraft, setClockOutNextDayDraft] = useState<boolean>(false) // ✅ 追加
   const [noteDraft, setNoteDraft] = useState<string>('')
 
+  // ✅ 修正開始：反映する値を「申請値→元値」の順で読み込む
   const startEdit = (row: CorrectionRow) => {
+    const a = row.attendance
+    const workDate = a?.work_date ?? null
+
+    const cinAfter = toHHmm(row.clock_in_at) // 申請
+    const coutAfter = toHHmm(row.clock_out_at)
+    const coutAfterNextDay = isNextDayFromRequest(workDate, row.clock_out_at)
+
     setEditingId(row.id)
-    setClockInDraft(toHHmm(row.clock_in_at) ?? '')
-    setClockOutDraft(toHHmm(row.clock_out_at) ?? '')
+
+    // 出勤：申請値があればそれ、なければ元
+    setClockInDraft(cinAfter ?? a?.clock_in ?? '')
+
+    // 退勤：申請値があればそれ、なければ元
+    setClockOutDraft(coutAfter ?? a?.clock_out ?? '')
+
+    // 退勤の翌日：申請があれば申請基準、なければ元のフラグ
+    setClockOutNextDayDraft(row.clock_out_at ? coutAfterNextDay : !!a?.is_next_day)
+
     setNoteDraft(row.note ?? '')
   }
 
@@ -102,17 +108,22 @@ export default function Index({ corrections }: Props) {
     setEditingId(null)
     setClockInDraft('')
     setClockOutDraft('')
+    setClockOutNextDayDraft(false)
     setNoteDraft('')
   }
 
   const approve = (row: CorrectionRow) => {
     const payload: Record<string, any> = {}
 
-    // 編集中のときだけ、上書き値を送る（空は送らない）
+    // 編集中のときだけ、上書き値を送る
     if (editingId === row.id) {
+      // 空なら送らない（=申請値のまま反映）
       if (clockInDraft) payload.clock_in = clockInDraft
       if (clockOutDraft) payload.clock_out = clockOutDraft
-      // メモは空でも送ってOKにしたいならここを変える（今は差分のみ）
+
+      // ✅ 日跨ぎも一緒に送る（clock_out を送る時だけ送るのが安全）
+      if (clockOutDraft) payload.clock_out_is_next_day = clockOutNextDayDraft
+
       if (noteDraft !== (row.note ?? '')) payload.note = noteDraft
     }
 
@@ -135,8 +146,6 @@ export default function Index({ corrections }: Props) {
         <div className="mx-auto max-w-7xl sm:px-6 lg:px-8">
           <div className="overflow-hidden bg-white shadow-sm sm:rounded-lg">
             <div className="p-6 text-gray-900 space-y-6">
-
-              {/* flash */}
               {(flash?.success || flash?.error) && (
                 <div className="space-y-2">
                   {flash?.success && <div className="rounded-md bg-green-50 p-3 text-sm text-green-700">{flash.success}</div>}
@@ -144,14 +153,12 @@ export default function Index({ corrections }: Props) {
                 </div>
               )}
 
-              {/* stats */}
               <div className="flex flex-wrap items-center gap-3 text-sm text-gray-600">
                 <div>件数：{corrections?.total ?? 0}</div>
                 <div className="rounded-md border px-2 py-1 text-xs">このページ未処理：{pendingCount}</div>
                 <div className="ml-auto text-xs text-gray-500">URL：/admin/attendance-corrections</div>
               </div>
 
-              {/* table */}
               <div className="overflow-x-auto">
                 <table className="min-w-full border">
                   <thead className="bg-gray-50">
@@ -160,8 +167,8 @@ export default function Index({ corrections }: Props) {
                       <th className="border px-3 py-2 text-left text-xs text-gray-600">対象日</th>
                       <th className="border px-3 py-2 text-left text-xs text-gray-600">従業員</th>
                       <th className="border px-3 py-2 text-left text-xs text-gray-600">メール</th>
-                      <th className="border px-3 py-2 text-left text-xs text-gray-600">出勤（元→申請）</th>
-                      <th className="border px-3 py-2 text-left text-xs text-gray-600">退勤（元→申請）</th>
+                      <th className="border px-3 py-2 text-left text-xs text-gray-600">出勤</th>
+                      <th className="border px-3 py-2 text-left text-xs text-gray-600">退勤</th>
                       <th className="border px-3 py-2 text-left text-xs text-gray-600">申請者</th>
                       <th className="border px-3 py-2 text-left text-xs text-gray-600">申請日時</th>
                       <th className="border px-3 py-2 text-left text-xs text-gray-600">操作</th>
@@ -177,10 +184,7 @@ export default function Index({ corrections }: Props) {
                       </tr>
                     ) : (
                       rows.map((row) => {
-                        if (!row) return null
-
                         const isEditing = editingId === row.id
-
                         const u = row.user
                         const a = row.attendance
 
@@ -188,15 +192,14 @@ export default function Index({ corrections }: Props) {
                         const cinBefore = a?.clock_in ?? null
                         const coutBefore = a?.clock_out ?? null
 
+                        // ✅ 申請（after）は AttendanceCorrection から取る：nullなら “—”
                         const cinAfter = toHHmm(row.clock_in_at)
-                        const coutAfter = toHHmm(row.clock_out_at)
-
-                        const cinChanged = changed(cinBefore, cinAfter)
-                        const coutChanged = changed(coutBefore, coutAfter)
+                        const coutAfterHHmm = toHHmm(row.clock_out_at)
+                        const coutAfterNextDay = isNextDayFromRequest(workDate, row.clock_out_at)
+                        const coutAfter = coutAfterHHmm ? (coutAfterNextDay ? `${coutAfterHHmm}（翌日）` : coutAfterHHmm) : null
 
                         return (
                           <>
-                            {/* 1行目：一覧 */}
                             <tr key={row.id} className="align-top">
                               <td className="border px-3 py-2 text-sm">
                                 <span className={`inline-flex items-center rounded-md border px-2 py-1 text-xs ${statusClass(row.status)}`}>
@@ -211,22 +214,16 @@ export default function Index({ corrections }: Props) {
                               <td className="border px-3 py-2 text-sm">
                                 <div className="flex items-center gap-2">
                                   <span className="text-gray-700">{fmtTime(cinBefore)}</span>
-                                  <span className="text-gray-400">→</span>
-                                  <span className={cinChanged ? 'font-semibold text-gray-900' : 'text-gray-700'}>
-                                    {fmtTime(cinAfter)}
-                                  </span>
-                                  {cinChanged && <span className="rounded bg-gray-100 px-2 py-0.5 text-[11px] text-gray-600">変更</span>}
+                                  <span className="text-gray-400"></span>
+                                  <span className="text-gray-900">{fmtTime(cinAfter)}</span>
                                 </div>
                               </td>
 
                               <td className="border px-3 py-2 text-sm">
                                 <div className="flex items-center gap-2">
-                                  <span className="text-gray-700">{fmtTime(coutBefore)}</span>
-                                  <span className="text-gray-400">→</span>
-                                  <span className={coutChanged ? 'font-semibold text-gray-900' : 'text-gray-700'}>
-                                    {fmtTime(coutAfter)}
-                                  </span>
-                                  {coutChanged && <span className="rounded bg-gray-100 px-2 py-0.5 text-[11px] text-gray-600">変更</span>}
+                                  <span className="text-gray-700">{fmtClockOut(coutBefore, a?.is_next_day)}</span>
+                                  
+                                  <span className="text-gray-900">{fmtTime(coutAfter)}</span>
                                 </div>
                               </td>
 
@@ -237,11 +234,7 @@ export default function Index({ corrections }: Props) {
                                 {row.status === 'pending' ? (
                                   isEditing ? (
                                     <div className="flex flex-col gap-2">
-                                      <button
-                                        type="button"
-                                        onClick={() => approve(row)}
-                                        className="rounded-md bg-gray-900 px-3 py-1.5 text-white"
-                                      >
+                                      <button type="button" onClick={() => approve(row)} className="rounded-md bg-gray-900 px-3 py-1.5 text-white">
                                         承認（反映）
                                       </button>
                                       <button type="button" onClick={cancelEdit} className="rounded-md border px-3 py-1.5">
@@ -250,53 +243,35 @@ export default function Index({ corrections }: Props) {
                                     </div>
                                   ) : (
                                     <div className="flex flex-col gap-2">
-                                      <button
-                                        type="button"
-                                        onClick={() => startEdit(row)}
-                                        className="rounded-md border px-3 py-1.5"
-                                      >
+                                      <button type="button" onClick={() => startEdit(row)} className="rounded-md border px-3 py-1.5">
                                         修正
                                       </button>
-                                      <button
-                                        type="button"
-                                        onClick={() => approve(row)}
-                                        className="rounded-md bg-gray-900 px-3 py-1.5 text-white"
-                                      >
+                                      <button type="button" onClick={() => approve(row)} className="rounded-md bg-gray-900 px-3 py-1.5 text-white">
                                         承認
                                       </button>
-                                      <button
-                                        type="button"
-                                        onClick={() => reject(row.id)}
-                                        className="rounded-md border px-3 py-1.5"
-                                      >
+                                      <button type="button" onClick={() => reject(row.id)} className="rounded-md border px-3 py-1.5">
                                         却下
                                       </button>
                                     </div>
                                   )
                                 ) : (
-                                  <span className="text-gray-500">—</span>
+                                  <span className="text-gray-500"></span>
                                 )}
                               </td>
                             </tr>
 
-                            {/* 2行目：理由・メモ・編集フォーム（全幅） */}
                             <tr key={`${row.id}-detail`} className="bg-gray-50/30">
                               <td className="border px-3 py-3 text-sm" colSpan={9}>
                                 <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                                   <div className="md:col-span-2">
                                     <div className="text-xs text-gray-500">理由</div>
-                                    <div className="mt-1 whitespace-pre-wrap break-words text-gray-800">
-                                      {row.reason?.trim() ? row.reason : '（理由なし）'}
-                                    </div>
+                                    <div className="mt-1 whitespace-pre-wrap break-words text-gray-800">{row.reason?.trim() ? row.reason : '（理由なし）'}</div>
                                   </div>
 
                                   <div>
                                     <div className="text-xs text-gray-500">管理メモ（任意）</div>
-
                                     {!isEditing ? (
-                                      <div className="mt-1 whitespace-pre-wrap break-words text-gray-800">
-                                        {row.note?.trim() ? row.note : '（メモなし）'}
-                                      </div>
+                                      <div className="mt-1 whitespace-pre-wrap break-words text-gray-800">{row.note?.trim() ? row.note : '（メモなし）'}</div>
                                     ) : (
                                       <textarea
                                         value={noteDraft}
@@ -330,12 +305,21 @@ export default function Index({ corrections }: Props) {
                                         onChange={(e) => setClockOutDraft(e.target.value)}
                                         className="mt-1 w-full rounded-md border-gray-300 text-sm"
                                       />
+
+                                      {/* ✅ 日跨ぎ：日付を出さずに操作できる */}
+                                      <label className="mt-2 flex items-center gap-2 text-xs text-gray-600">
+                                        <input
+                                          type="checkbox"
+                                          checked={clockOutNextDayDraft}
+                                          onChange={(e) => setClockOutNextDayDraft(e.target.checked)}
+                                        />
+                                        退勤は翌日
+                                      </label>
+
                                       <div className="mt-1 text-xs text-gray-400">空なら申請値のまま反映</div>
                                     </div>
 
-                                    <div className="text-xs text-gray-500">
-                                      ※「承認（反映）」でこの入力値を使って反映します。
-                                    </div>
+                                    <div className="text-xs text-gray-500">※「承認（反映）」でこの入力値を使って反映します。</div>
                                   </div>
                                 )}
                               </td>
@@ -348,7 +332,6 @@ export default function Index({ corrections }: Props) {
                 </table>
               </div>
 
-              {/* pagination */}
               <nav className="flex flex-wrap gap-2">
                 {(corrections?.links ?? []).map((l, idx) => (
                   <button
@@ -361,7 +344,6 @@ export default function Index({ corrections }: Props) {
                   />
                 ))}
               </nav>
-
             </div>
           </div>
         </div>

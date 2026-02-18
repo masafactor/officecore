@@ -31,27 +31,35 @@ class AttendanceController extends Controller
         return back()->with('success', '出勤を打刻しました。');
     }
 
+
+
     public function clockOut(): RedirectResponse
     {
         $userId = Auth::id();
-        $today = now()->toDateString();
 
-        $attendance = Attendance::where('user_id', $userId)
-            ->where('work_date', $today)
+        // 1) 「未退勤」(clock_inあり & clock_outなし) を最新から探す
+        $attendance = Attendance::query()
+            ->where('user_id', $userId)
+            ->whereNotNull('clock_in')
+            ->whereNull('clock_out')
+            ->orderByDesc('work_date')
             ->first();
 
-        if (!$attendance || !$attendance->clock_in) {
-            return back()->with('error', '出勤打刻がありません。');
+        if (!$attendance) {
+            return back()->with('error', '未退勤の勤怠がありません。');
         }
 
+        // 2) ガード：すでに退勤済み（基本ここには来ないが保険）
         if ($attendance->clock_out) {
             return back()->with('error', 'すでに退勤打刻済みです。');
         }
 
+        // 3) 退勤打刻
         $attendance->update(['clock_out' => now()]);
 
         return back()->with('success', '退勤を打刻しました。');
     }
+
 
 
 

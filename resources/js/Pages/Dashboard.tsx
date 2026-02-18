@@ -48,6 +48,8 @@ export default function Dashboard({
   return m ? m[1] : v
   }
 
+  const hasUnclosed = (missingClockOutDates?.length ?? 0) > 0
+
 
   const fmtMinutes = (m: number | null) => {
     if (m == null) return '—'
@@ -156,14 +158,15 @@ export default function Dashboard({
                     出勤
                   </button>
 
-                  <button
-                    type="button"
-                    onClick={clockOut}
-                    disabled={!hasClockIn || hasClockOut}
-                    className="rounded-md bg-gray-900 px-4 py-2 text-white disabled:opacity-40"
-                  >
-                    退勤
-                  </button>
+                 <button
+                  type="button"
+                  onClick={clockOut}
+                  disabled={(!hasClockIn && !hasUnclosed) || hasClockOut}
+                  className="rounded-md bg-gray-900 px-4 py-2 text-white disabled:opacity-40"
+                >
+                  退勤
+                </button>
+
                 </div>
               </section>
 

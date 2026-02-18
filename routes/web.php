@@ -78,6 +78,13 @@ Route::get('/dashboard', function () {
 
 
 
+    $openAttendance = Attendance::query()
+    ->where('user_id', $user->id)
+    ->whereNotNull('clock_in')
+    ->whereNull('clock_out')
+    ->orderByDesc('work_date')
+    ->first();
+
 
     return Inertia::render('Dashboard', [
         'today' => $today,
@@ -94,6 +101,14 @@ Route::get('/dashboard', function () {
 
             'note' => $attendance->note,
             'overtime_now' => $isOvertimeNow,
+        ] : null,
+
+         // ★追加（退勤ボタンの対象）
+        'openAttendance' => $openAttendance ? [
+            'id' => $openAttendance->id,
+            'work_date' => optional($openAttendance->work_date)->toDateString(),
+            'clock_in'  => $openAttendance->clock_in ? \Carbon\Carbon::parse($openAttendance->clock_in)->format('H:i') : null,
+            'clock_out' => null,
         ] : null,
 
     ]);

@@ -40,39 +40,66 @@ Route::get('/dashboard', function () {
         })
         ->first();
 
-    $missingClockOutDates = Attendance::query()
-    ->where('user_id', $user->id)
-    ->whereNotNull('clock_in')
-    ->whereNull('clock_out')
-    ->orderByDesc('work_date')
-    ->limit(10)
-    ->pluck('work_date')
-    ->map(fn ($d) => $d->toDateString()); // castsでdateなら Carbon になる
-
-
     if (!$workRule) {
         $workRule = WorkRule::where('name', '通常勤務')->first();
     }
 
-    $workedMinutes = null;
-    if ($attendance && $workRule) {
-        $workedMinutes = $attendance->workedMinutesForRule($workRule);
+    $missingClockOutDates = Attendance::query()
+    ->where('user_id', $user->id)
+    ->whereNotNull('clock_in')
+    ->whereNull('clock_out')
+    ->where('work_date', '<', $today) // ← 当日除外
+    ->orderByDesc('work_date')
+    ->limit(10)
+    ->pluck('work_date')
+    ->map(fn ($d) => $d->toDateString());
+
+
+    // 通常の実働（退勤済みの日だけ取れる）
+    $workedMinutes = ($attendance && $workRule) ? $attendance->workedMinutesForRule($workRule) : null;
+
+    // 残業中判定：未退勤なら now() を仮の退勤として計算
+    $isOvertimeNow = false;
+
+    if ($attendance && $workRule && $attendance->clock_in && !$attendance->clock_out) {
+        $date = $attendance->work_date->toDateString();
+
+        // 所定終了時刻（work_end）
+        $schedEnd = \Carbon\Carbon::parse("{$date} {$workRule->work_end}");
+
+        // 日跨ぎ勤務（例: 22:00-05:00）なら翌日にする
+        $schedStart = \Carbon\Carbon::parse("{$date} {$workRule->work_start}");
+        if ($schedEnd->lte($schedStart)) {
+            $schedEnd->addDay();
+        }
+
+        $isOvertimeNow = now()->gt($schedEnd);
     }
 
-    return Inertia::render('Dashboard', [
-    'today' => $today,
-    'workedMinutes' => $workedMinutes,
-    'missingClockOutDates' => $missingClockOutDates,
-    'attendance' => $attendance ? [
-        'id' => $attendance->id,
-        'work_date' => $attendance->work_date->toDateString(),
-        'clock_in'  => optional($attendance->clock_in)->format('H:i'),
-        'clock_out' => optional($attendance->clock_out)->format('H:i'),
-        'note' => $attendance->note,
-    ] : null,
-]);
 
+
+
+    return Inertia::render('Dashboard', [
+        'today' => $today,
+        'workedMinutes' => $workedMinutes,
+        // 'workedMinutesNow' => $workedMinutesNow,
+        'missingClockOutDates' => $missingClockOutDates,
+        'attendance' => $attendance ? [
+            'id' => $attendance->id,
+            'work_date' => optional($attendance->work_date)->toDateString(),
+
+            // ここを「必ず HH:MM」に寄せる
+            'clock_in'  => $attendance->clock_in ? \Carbon\Carbon::parse($attendance->clock_in)->format('H:i') : null,
+            'clock_out' => $attendance->clock_out ? \Carbon\Carbon::parse($attendance->clock_out)->format('H:i') : null,
+
+            'note' => $attendance->note,
+            'overtime_now' => $isOvertimeNow,
+        ] : null,
+
+    ]);
 })->middleware(['auth', 'verified'])->name('dashboard');
+
+
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');

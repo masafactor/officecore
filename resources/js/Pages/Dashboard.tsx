@@ -7,6 +7,7 @@ type Attendance = {
   work_date: string
   clock_in: string | null
   clock_out: string | null
+   overtime_now?: boolean
 }
 
 type Props = {
@@ -35,7 +36,18 @@ export default function Dashboard({
     router.post(route('attendance.clockOut'))
   }
 
-  const fmtTime = (hhmm: string | null) => hhmm ?? '—'
+ 
+  const fmtTime = (v: string | null) => {
+  if (!v) return '—'
+
+  // すでに "HH:MM" ならそのまま
+  if (/^\d{2}:\d{2}$/.test(v)) return v
+
+  // "YYYY-MM-DD HH:MM:SS" or ISO ("YYYY-MM-DDTHH:MM:SS") なら時刻だけ抜く
+  const m = v.match(/(\d{2}:\d{2})/)
+  return m ? m[1] : v
+  }
+
 
   const fmtMinutes = (m: number | null) => {
     if (m == null) return '—'
@@ -69,6 +81,7 @@ export default function Dashboard({
                       <div className="text-sm text-amber-900/80">
                         退勤打刻が未入力の日付：
                       </div>
+                    
 
                       <div className="flex flex-wrap gap-2">
                         {missingClockOutDates.slice(0, 10).map((d) => (
@@ -90,6 +103,8 @@ export default function Dashboard({
                         ※ 修正申請がまだの場合は、下のフォームか勤怠履歴から申請してください。
                       </div>
                     </div>
+                  
+
 
                     {/* 一旦リンク先が無ければボタン無しでもOK。
                         後で「勤怠一覧」や「該当日へ移動」ができたら活かす */}
@@ -97,6 +112,9 @@ export default function Dashboard({
                   </div>
                 </section>
               )}
+                {attendance?.overtime_now && attendance?.clock_in && !attendance?.clock_out && (
+                      <span>🔥 勤務終了時刻を過ぎています</span>
+                    )}
 
               {/* 今日の勤怠 */}
               <section className="space-y-2">

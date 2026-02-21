@@ -1,20 +1,32 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout'
 import { Head, useForm, usePage } from '@inertiajs/react'
+import { router } from '@inertiajs/react'
 
 type Props = {
-  rule: {
+  rules: { id: number; name: string }[]
+  selectedRule: {
     id: number
     name: string
     work_start: string | null
     work_end: string | null
     break_start: string | null
     break_end: string | null
-    rounding_unit_minutes?: number | null // ✅ 追加
-  }
+    rounding_unit_minutes: number | null
+  } | null
 }
 
-export default function Edit({ rule }: Props) {
+export default function Edit({ rules, selectedRule }: Props) {
   const flash = usePage<any>().props.flash
+
+    if (!selectedRule) {
+    return (
+      <AuthenticatedLayout header={<h2>勤務ルール（管理者）</h2>}>
+        <div className="p-6">ルールが見つかりません</div>
+      </AuthenticatedLayout>
+    )
+  }
+   
+  const rule = selectedRule
 
   const hhmm = (v: string | null) => (v ? v.slice(0, 5) : '')
 
@@ -30,7 +42,7 @@ export default function Edit({ rule }: Props) {
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault()
-    patch(route('admin.work-rules.update'))
+    patch(route('admin.work-rules.update', rule.id))
   }
 
   return (
@@ -46,7 +58,26 @@ export default function Edit({ rule }: Props) {
                 <div className="rounded-md bg-green-50 p-3 text-sm text-green-700">{flash.success}</div>
               )}
 
-              <div className="text-sm text-gray-600">編集対象：{rule.name}</div>
+              <div>
+                <label className="block text-xs text-gray-600">勤務ルール切替</label>
+                <select
+                  value={rule.id}
+                  onChange={(e) => {
+                    router.get(
+                      route('admin.work-rules.edit'),
+                      { rule: e.target.value },
+                      { preserveState: false }
+                    )
+                  }}
+                  className="mt-1 w-full max-w-xs rounded-md border-gray-300 text-sm"
+                >
+                  {rules.map((r) => (
+                    <option key={r.id} value={r.id}>
+                      {r.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
               <form onSubmit={submit} className="space-y-5">
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

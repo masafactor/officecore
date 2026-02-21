@@ -201,7 +201,7 @@ Route::middleware(['auth', 'verified', 'admin'])
       Route::get('/work-rules', [\App\Http\Controllers\Admin\WorkRuleController::class, 'edit'])
           ->name('work-rules.edit');
 
-      Route::patch('/work-rules', [\App\Http\Controllers\Admin\WorkRuleController::class, 'update'])
+      Route::patch('/work-rules/{workRule}', [\App\Http\Controllers\Admin\WorkRuleController::class, 'update'])
           ->name('work-rules.update');
   });
 
@@ -209,5 +209,6 @@ Route::middleware(['auth', 'verified', 'admin'])
     Route::get('/daily-reports', [DailyReportController::class, 'index'])->name('daily-reports.index');
     Route::post('/daily-reports', [DailyReportController::class, 'store'])->name('daily-reports.store');
 });
+
 
 require __DIR__.'/auth.php';

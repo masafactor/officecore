@@ -210,5 +210,11 @@ Route::middleware(['auth', 'verified', 'admin'])
     Route::post('/daily-reports', [DailyReportController::class, 'store'])->name('daily-reports.store');
 });
 
+Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(function () {
+    Route::get('/users', [\App\Http\Controllers\Admin\UserController::class, 'index'])->name('users.index');
+    Route::get('/users/{user}/edit', [\App\Http\Controllers\Admin\UserController::class, 'edit'])->name('users.edit');
+    Route::patch('/users/{user}/work-rule', [\App\Http\Controllers\Admin\UserController::class, 'updateWorkRule'])->name('users.work-rule.update');
+});
+
 
 require __DIR__.'/auth.php';

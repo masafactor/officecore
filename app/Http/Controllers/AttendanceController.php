@@ -15,6 +15,8 @@ class AttendanceController extends Controller
     public function clockIn(): RedirectResponse
     {
         $userId = Auth::id();
+        $rule = auth()->user()->currentWorkRule();
+        if (!$rule) return back()->with('error', '勤務ルールが未設定です（管理者に連絡してください）。');
         $today = now()->toDateString();
 
         $attendance = Attendance::firstOrCreate(

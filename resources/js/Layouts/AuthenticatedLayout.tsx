@@ -90,6 +90,13 @@ const { auth } = usePage<PageProps>().props
                                     >
                                     月次集計（管理者）
                                     </NavLink>
+
+                                     <NavLink
+                                        href={route('admin.users.index')}
+                                        active={route().current('admin.users.*')}
+                                    >
+                                        ユーザー管理
+                                    </NavLink>
                                 </>
                                 )}
                                 
@@ -238,6 +245,13 @@ const { auth } = usePage<PageProps>().props
                                 active={route().current('admin.reports.monthly')}
                                 >
                                 月次集計（管理者）
+                                </ResponsiveNavLink>
+
+                                <ResponsiveNavLink
+                                    href={route('admin.users.index')}
+                                    active={route().current('admin.users.*')}
+                                >
+                                    ユーザー管理
                                 </ResponsiveNavLink>
                             </>
                             )}

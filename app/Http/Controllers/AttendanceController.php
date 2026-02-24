@@ -59,6 +59,14 @@ class AttendanceController extends Controller
         // 3) 退勤打刻
         $attendance->update(['clock_out' => now()]);
 
+        $user = $attendance->user;
+        $rule = $user?->currentWorkRule($attendance->work_date);
+
+        if ($rule) {
+            $attendance->updateLateEarlyFlags($rule);
+            $attendance->save();
+        }
+
         return back()->with('success', '退勤を打刻しました。');
     }
 

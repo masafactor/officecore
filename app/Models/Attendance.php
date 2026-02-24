@@ -265,4 +265,19 @@ class Attendance extends Model
         return (int)($w ?? 0) + (int)($o ?? 0);
     }
 
+    public function updateLateEarlyFlags(WorkRule $rule): void
+    {
+        if (!$this->clock_in || !$this->clock_out) {
+            return;
+        }
+
+        [$schedStart, $schedEnd] = $this->periodFromTimeRange(
+            $this->work_date->toDateString(),
+            $rule->work_start,
+            $rule->work_end
+        );
+
+        $this->is_late = $this->clock_in->gt($schedStart);
+        $this->is_early_leave = $this->clock_out->lt($schedEnd);
+    }
 }

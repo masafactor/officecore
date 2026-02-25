@@ -41,7 +41,7 @@ export default function AttendanceCorrectionForm({ attendance, today }: Props) {
     setClockOutDate(baseDate)
     setClockOutTime(attendance?.clock_out ?? '')
     setReason('')
-    setNote('')
+    
   }
 
   const canSubmit = useMemo(() => {
@@ -52,26 +52,21 @@ export default function AttendanceCorrectionForm({ attendance, today }: Props) {
   }, [attendance, reason, clockInTime, clockOutTime, note])
 
   const submit = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!attendance) return
+  e.preventDefault()
+  
 
-    router.post(
-      `/attendances/${attendance.id}/corrections`,
-      {
-        clock_in_date: clockInDate || null,
-        clock_in_time: clockInTime || null,
-        clock_out_date: clockOutDate || null,
-        clock_out_time: clockOutTime || null,
-        reason: reason || null,
-        note: note || null,
-      },
-      {
-        preserveScroll: true,
-        onSuccess: () => {
-          setOpen(false)
-        },
-      }
-    )
+  const clockInAt =
+  clockInTime ? `${clockInDate} ${clockInTime}` : null
+
+  const clockOutAt =
+    clockOutTime ? `${clockOutDate} ${clockOutTime}` : null
+
+  router.post(`/attendances/${attendance?.id}/corrections`, {
+    clock_in_at: clockInAt,
+    clock_out_at: clockOutAt,
+    reason: reason.trim() || null,
+    note: note.trim() || null,
+  })
   }
 
   return (
@@ -179,6 +174,7 @@ export default function AttendanceCorrectionForm({ attendance, today }: Props) {
               rows={2}
             />
           </div>
+
 
           <div className="flex gap-2">
             <button

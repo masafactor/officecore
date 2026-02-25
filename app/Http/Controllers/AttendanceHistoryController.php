@@ -37,6 +37,8 @@ class AttendanceHistoryController extends Controller
                 // 実働は仕様未確定なので一旦表示しない or null
                 'note' => $a->note,
                 'updated_at' => optional($a->updated_at)->toDateTimeString(),
+                'is_late' => (bool) $a->is_late,
+                'is_early_leave' => (bool) $a->is_early_leave,
             ]);
 
         return Inertia::render('Attendances/Index', [

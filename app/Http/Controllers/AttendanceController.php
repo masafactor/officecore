@@ -66,6 +66,7 @@ class AttendanceController extends Controller
             $attendance->updateLateEarlyFlags($rule);
             $attendance->save();
         }
+        
 
         return back()->with('success', '退勤を打刻しました。');
     }

@@ -74,6 +74,7 @@ class AttendanceController extends Controller
                 'data' => $items->values()->all(), // ✅ ここ
                 'links' => $attendances->linkCollection(),
                 'total' => $attendances->total(),
+                
             ],
             
         ]);

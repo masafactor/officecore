@@ -76,4 +76,20 @@ class User extends Authenticatable
             ?? WorkRule::where('name', '通常勤務')->first();
     }
 
+    public function userEmployments()
+    {
+        return $this->hasMany(\App\Models\UserEmployment::class);
+    }
+
+    public function currentEmploymentType(\Carbon\Carbon|string|null $date = null): ?\App\Models\EmploymentType
+    {
+        $date = $date ? \Carbon\Carbon::parse($date) : now();
+
+        // できればここは「その日付で絞るクエリ」にしたいけど
+        // まずは雑にコレでも動く（件数が増えたら最適化）
+        $history = $this->userEmployments
+            ->first(fn ($r) => $r->isActiveOn($date));
+
+        return $history?->employmentType;
+    }
 }

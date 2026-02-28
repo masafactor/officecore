@@ -280,4 +280,18 @@ class Attendance extends Model
         $this->is_late = $this->clock_in->gt($schedStart);
         $this->is_early_leave = $this->clock_out->lt($schedEnd);
     }
+
+    public function overtimeMinutesWithPolicy(WorkRule $rule, string $policy): ?int
+    {
+        $total = $this->totalMinutesForRule($rule);
+
+        if ($total === null) return null;
+
+        if ($policy === 'legal_over') {
+            return max(0, $total - 480); // 8時間
+        }
+
+        // scheduled_over
+        return $this->overtimeMinutesForRule($rule);
+    }
 }

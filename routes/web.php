@@ -194,6 +194,7 @@ Route::post('/attendances/{attendance}/corrections', [AttendanceCorrectionContro
     ->name('attendances.corrections.store');
 
 
+
 Route::middleware(['auth', 'verified', 'admin'])
   ->prefix('admin')
   ->name('admin.')
@@ -203,6 +204,9 @@ Route::middleware(['auth', 'verified', 'admin'])
 
       Route::patch('/work-rules/{workRule}', [\App\Http\Controllers\Admin\WorkRuleController::class, 'update'])
           ->name('work-rules.update');
+
+              Route::patch('/users/{user}/employment', [\App\Http\Controllers\Admin\UserController::class, 'updateEmployment'])
+          ->name('users.employment.update');
   });
 
   Route::middleware(['auth', 'verified'])->group(function () {

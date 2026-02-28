@@ -81,6 +81,11 @@ class User extends Authenticatable
         return $this->hasMany(\App\Models\UserEmployment::class);
     }
 
+    public function employmentType()
+    {
+        return $this->belongsTo(EmploymentType::class);
+    }
+
     public function currentEmploymentType(\Carbon\Carbon|string|null $date = null): ?\App\Models\EmploymentType
     {
         $date = $date ? \Carbon\Carbon::parse($date) : now();
@@ -91,5 +96,17 @@ class User extends Authenticatable
             ->first(fn ($r) => $r->isActiveOn($date));
 
         return $history?->employmentType;
+    }
+
+  
+
+    public function employmentOn(\Carbon\Carbon|string|null $date = null): ?\App\Models\EmploymentType
+    {
+        $date = $date ? \Carbon\Carbon::parse($date) : now();
+
+        $hist = $this->userEmployments
+            ->first(fn ($r) => $r->isActiveOn($date)); // UserWorkRule と同じ isActiveOn を持たせる
+
+        return $hist?->employmentType;
     }
 }

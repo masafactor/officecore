@@ -18,5 +18,8 @@ class DatabaseSeeder extends Seeder
         // User::factory(10)->create();
 
         $this->call(WorkRuleSeeder::class,UserWorkRuleSeeder::class,);
+         $this->call([
+        EmploymentTypeSeeder::class,
+        ]);
     }
 }

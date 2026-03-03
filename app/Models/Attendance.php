@@ -48,7 +48,7 @@ class Attendance extends Model
      * - 実働を「所定内だけ」にする（残業と二重計上しない）ため、終了は min(実績退勤, 所定終了) にしている。
      *   もし「実働=所定外も含めた全勤務」にしたいなら、$end を $actualEnd に変更し、表示側の意味付けを調整すること。
      */
-    public function workedMinutesForRule(WorkRule $rule): ?int
+    public function workedWithinScheduleMinutesForRule(WorkRule $rule): ?int
     {
         if (!$this->clock_in || !$this->clock_out) return null;
         if (!$rule->work_start || !$rule->work_end) return null;
@@ -252,18 +252,15 @@ class Attendance extends Model
         return preg_match('/^\d{2}:\d{2}$/', $time) ? "{$time}:00" : $time;
     }
 
-    /**
-     * 総労働時間（表示用）
-     * = 所定内実働 + 残業
-     */
-    public function totalMinutesForRule(WorkRule $rule): ?int
-    {
-        $w = $this->workedMinutesForRule($rule);
-        $o = $this->overtimeMinutesForRule($rule);
 
-        if ($w === null && $o === null) return null;
-        return (int)($w ?? 0) + (int)($o ?? 0);
-    }
+    /**
+     * 総労働時間（実績ベース）
+     * = 出勤〜退勤の差分から、休憩帯の「被り分」を控除したもの
+     * - 早出/残業を含む（実績そのもの）
+     * - 日跨ぎ対応（actualPeriodRaw を使う）
+     * - 丸めは WorkRule.rounding_unit_minutes で合計分を切り捨て
+     */
+
 
     public function updateLateEarlyFlags(WorkRule $rule): void
     {
@@ -281,17 +278,64 @@ class Attendance extends Model
         $this->is_early_leave = $this->clock_out->lt($schedEnd);
     }
 
-    public function overtimeMinutesWithPolicy(WorkRule $rule, string $policy): ?int
+    public function totalMinutesForRule(WorkRule $rule): ?int
     {
-        $total = $this->totalMinutesForRule($rule);
+        if (!$this->clock_in || !$this->clock_out) return null;
 
-        if ($total === null) return null;
+        $unit = $this->roundingUnitForRule($rule);
 
-        if ($policy === 'legal_over') {
-            return max(0, $total - 480); // 8時間
+        [$start, $end] = $this->actualPeriodRaw();
+        if ($end->lte($start)) return 0;
+
+        $worked = $start->diffInMinutes($end);
+
+        // 休憩控除（勤務区間と被った分だけ）
+        if ($rule->break_start && $rule->break_end) {
+            $date = $this->work_date->toDateString();
+            [$breakStart, $breakEnd] = $this->periodFromTimeRange($date, $rule->break_start, $rule->break_end);
+            $worked -= $this->overlapMinutes($start, $end, $breakStart, $breakEnd);
         }
 
-        // scheduled_over
+        $worked = max(0, $worked);
+
+        return $this->floorMinutes($worked, $unit);
+    }
+
+    public function overtimeMinutesWithPolicy(WorkRule $rule, string $policy): ?int
+    {
+        if ($policy === 'legal_over') {
+            $total = $this->totalMinutesForRule($rule); // ✅ここがポイント
+            if ($total === null) return null;
+            return max(0, $total - 480);
+        }
+
+        // scheduled_over（正社員など）
         return $this->overtimeMinutesForRule($rule);
     }
+
+   public function overtimeBreakdownMinutes(WorkRule $rule, string $policy): ?array
+    {
+        $actual = $this->totalMinutesForRule($rule);
+        if ($actual === null) return null;
+
+        $scheduled = $this->scheduledMinutesForRule($rule); // 所定勤務分(休憩控除済)
+        $scheduled = $scheduled ?? 0;
+
+        // 残業合計（所定超）
+        $overtime_total = max(0, $actual - $scheduled);
+
+        // 法定外（8h超）
+        $out = max(0, $actual - 480);
+
+        // 残業のうち法定内（= 残業合計から法定外を引く）
+        $in = max(0, $overtime_total - $out);
+
+        return ['in' => $in, 'out' => $out];
+    }
+
+    public function overtimeBreakdownMinutesWithPolicy(WorkRule $rule, string $policy): ?array
+    {
+        return $this->overtimeBreakdownMinutes($rule, $policy);
+    }
+
 }

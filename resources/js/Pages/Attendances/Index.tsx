@@ -12,6 +12,14 @@ type AttendanceRow = {
   updated_at: string | null
   is_late: boolean
   is_early_leave: boolean
+
+minutes: {
+  scheduled_work_minutes: number
+  total_work_minutes: number
+  overtime: { in: number; out: number }
+  night: number
+}
+
 }
 
 type Link = { url: string | null; label: string; active: boolean }
@@ -27,6 +35,14 @@ type Props = {
 
 const fmt = (v: string | null) => v ?? '—'
 const ymd = (s: string) => s.replaceAll('-', '/')
+
+// 分 → "Xh Ym"
+const fmtMinutes = (m: number) => {
+  if (!m || m <= 0) return '—'
+  const h = Math.floor(m / 60)
+  const min = m % 60
+  return `${h}h ${min}m`
+}
 
 export default function Index({ filters, attendances }: Props) {
   const [month, setMonth] = useState(filters.month)
@@ -49,7 +65,8 @@ export default function Index({ filters, attendances }: Props) {
         <div className="mx-auto max-w-7xl sm:px-6 lg:px-8">
           <div className="overflow-hidden bg-white shadow-sm sm:rounded-lg">
             <div className="p-6 text-gray-900 space-y-6">
-              {/* filter */}
+
+              {/* ===== フィルタ ===== */}
               <form onSubmit={submit} className="flex flex-wrap items-end gap-3">
                 <div>
                   <label className="block text-xs text-gray-600">対象月</label>
@@ -65,10 +82,12 @@ export default function Index({ filters, attendances }: Props) {
                   表示
                 </button>
 
-                <div className="ml-auto text-sm text-gray-600">件数：{attendances.total}</div>
+                <div className="ml-auto text-sm text-gray-600">
+                  件数：{attendances.total}
+                </div>
               </form>
 
-              {/* table */}
+              {/* ===== テーブル ===== */}
               <div className="overflow-x-auto">
                 <table className="min-w-full border">
                   <thead className="bg-gray-50">
@@ -76,6 +95,9 @@ export default function Index({ filters, attendances }: Props) {
                       <th className="border px-3 py-2 text-left text-xs text-gray-600">日付</th>
                       <th className="border px-3 py-2 text-left text-xs text-gray-600">出勤</th>
                       <th className="border px-3 py-2 text-left text-xs text-gray-600">退勤</th>
+                      <th className="border px-3 py-2 text-left text-xs text-gray-600">残業（内/外）</th>
+                      <th className="border px-3 py-2 text-left text-xs text-gray-600">深夜</th>
+                      <th className="border px-3 py-2 text-left text-xs text-gray-600">総労働時間</th>
                       <th className="border px-3 py-2 text-left text-xs text-gray-600">状態</th>
                       <th className="border px-3 py-2 text-left text-xs text-gray-600">メモ</th>
                       <th className="border px-3 py-2 text-left text-xs text-gray-600">操作</th>
@@ -86,26 +108,77 @@ export default function Index({ filters, attendances }: Props) {
                   <tbody>
                     {attendances.data.length === 0 ? (
                       <tr>
-                        <td className="px-3 py-4 text-sm text-gray-600" colSpan={7}>
+                        <td className="px-3 py-4 text-sm text-gray-600" colSpan={9}>
                           この月の勤怠データはありません。
                         </td>
                       </tr>
                     ) : (
                       attendances.data.map((row) => {
-                        const status = !row.clock_in ? '未出勤' : !row.clock_out ? '勤務中' : '退勤済'
+                        const status = !row.clock_in
+                          ? '未出勤'
+                          : !row.clock_out
+                            ? '勤務中'
+                            : '退勤済'
+
                         const statusClass = !row.clock_in
                           ? 'text-red-600'
                           : !row.clock_out
                             ? 'text-blue-600'
                             : 'text-gray-700'
 
+                        const overtimeTotal =
+                          row.minutes.overtime.in + row.minutes.overtime.out
+
                         return (
                           <tr key={row.id}>
-                            <td className="border px-3 py-2 text-sm">{ymd(row.work_date)}</td>
-                            <td className="border px-3 py-2 text-sm">{fmt(row.clock_in)}</td>
-                            <td className="border px-3 py-2 text-sm">{fmt(row.clock_out)}</td>
+                            <td className="border px-3 py-2 text-sm">
+                              {ymd(row.work_date)}
+                            </td>
 
-                            {/* 状態 + 遅刻/早退 */}
+                            <td className="border px-3 py-2 text-sm">
+                              {fmt(row.clock_in)}
+                            </td>
+
+                            <td className="border px-3 py-2 text-sm">
+                              {fmt(row.clock_out)}
+                            </td>
+
+                            {/* ===== 残業（A案） ===== */}
+                            <td className="border px-3 py-2 text-sm">
+                              {!row.clock_out ? (
+                                <span className="text-gray-400">—</span>
+                              ) : overtimeTotal === 0 ? (
+                                <span className="text-gray-400">—</span>
+                              ) : (
+                                <div className="flex flex-col gap-1 text-xs">
+                                  {row.minutes.overtime.in > 0 && (
+                                    <span className="text-gray-700">
+                                      内 {fmtMinutes(row.minutes.overtime.in)}
+                                    </span>
+                                  )}
+                                  {row.minutes.overtime.out > 0 && (
+                                    <span className="text-red-600 font-medium">
+                                      外 {fmtMinutes(row.minutes.overtime.out)}
+                                    </span>
+                                  )}
+                                </div>
+                              )}
+                              
+                            </td>
+                            
+
+                            {/* ===== 深夜 ===== */}
+                            <td className="border px-3 py-2 text-sm">
+                              {!row.clock_out || row.minutes.night === 0
+                                ? '—'
+                                : fmtMinutes(row.minutes.night)}
+                            </td>
+
+                            {/* ===== 総労働時間 ===== */}{!row.clock_out || row.minutes.total_work_minutes === 0
+                              ? '—'
+                              : fmtMinutes(row.minutes.total_work_minutes)}
+
+                            {/* ===== 状態 + 遅刻早退 ===== */}
                             <td className="border px-3 py-2 text-sm">
                               <div className="flex flex-col gap-1">
                                 <span className={statusClass}>{status}</span>
@@ -128,7 +201,8 @@ export default function Index({ filters, attendances }: Props) {
                               {row.note?.trim() ? row.note : '—'}
                             </td>
 
-                            {/* 操作 */}
+
+
                             <td className="border px-3 py-2 text-sm">
                               <button
                                 type="button"
@@ -140,7 +214,9 @@ export default function Index({ filters, attendances }: Props) {
                             </td>
 
                             <td className="border px-3 py-2 text-sm text-gray-600">
-                              {row.updated_at ? new Date(row.updated_at).toLocaleString('ja-JP') : '—'}
+                              {row.updated_at
+                                ? new Date(row.updated_at).toLocaleString('ja-JP')
+                                : '—'}
                             </td>
                           </tr>
                         )
@@ -150,7 +226,7 @@ export default function Index({ filters, attendances }: Props) {
                 </table>
               </div>
 
-              {/* pagination */}
+              {/* ===== ページネーション ===== */}
               <nav className="flex flex-wrap gap-2">
                 {attendances.links.map((l, idx) => (
                   <button
@@ -168,7 +244,7 @@ export default function Index({ filters, attendances }: Props) {
             </div>
           </div>
 
-          {/* 修正申請フォーム（下に出す） */}
+          {/* ===== 修正申請フォーム ===== */}
           {targetAttendance && (
             <div className="mt-6">
               <AttendanceCorrectionForm

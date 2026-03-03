@@ -145,8 +145,8 @@ class MonthlyReportController extends Controller
 
                 if (!$rule) continue;
 
-                // 実働
-                $m = $a->workedMinutesForRule($rule);
+                // 所定労働時間
+                $m = $a->workedWithinScheduleMinutesForRule($rule);
                 if ($m !== null) {
                     $workedMinutesSum += (int) $m;
                     $workedDays++;

@@ -13,17 +13,18 @@ use Illuminate\Validation\Rule;
 
 class AttendanceController extends Controller
 {
+  
     public function index(Request $request)
     {
         $date = $request->query('date', now()->toDateString());
 
         $ruleMap = UserWorkRule::query()
-        ->where('start_date', '<=', $date)
-        ->where(function ($q) use ($date) {
-            $q->whereNull('end_date')->orWhere('end_date', '>=', $date);
-        })
-        ->get(['user_id', 'work_rule_id'])
-        ->keyBy('user_id');
+            ->where('start_date', '<=', $date)
+            ->where(function ($q) use ($date) {
+                $q->whereNull('end_date')->orWhere('end_date', '>=', $date);
+            })
+            ->get(['user_id', 'work_rule_id'])
+            ->keyBy('user_id');
 
         $attendances = Attendance::query()
             ->with(['user:id,name,email'])
@@ -34,23 +35,40 @@ class AttendanceController extends Controller
 
         $workRules = WorkRule::query()->get()->keyBy('id');
         $defaultRule = WorkRule::where('name', '通常勤務')->first();
-        
-        // Inertiaには必要項目だけ渡す（TSで扱いやすくする）
-        $items = $attendances->through(function (Attendance $a) use ($ruleMap, $workRules, $defaultRule) {
+
+        $items = $attendances->through(function (Attendance $a) use ($ruleMap, $workRules, $defaultRule, $date) {
             $ruleId = $ruleMap->get($a->user_id)?->work_rule_id ?? $defaultRule?->id;
             $rule = $ruleId ? $workRules->get($ruleId) : null;
 
-            $workedMinutes = null;
+            $scheduled_work_minutes = $rule ? $a->workedWithinScheduleMinutesForRule($rule) : null;
+
+            // ✅ policy：WorkRuleにカラムが無いなら scheduled_over 固定でOK
+            // 例）$policy = $rule?->overtime_policy ?? 'scheduled_over';
+            $policy = $rule?->overtime_policy ?? 'scheduled_over';
+
+            // ✅ A案：法定内/法定外（in/out）
+            // すでに Attendance に overtimeBreakdownMinutesWithPolicy を作った前提
+            $overtime = ['in' => 0, 'out' => 0];
             if ($rule) {
-                $workedMinutes = $a->workedMinutesForRule($rule);
+                $overtime = $a->overtimeBreakdownMinutesWithPolicy($rule, $policy) ?? ['in' => 0, 'out' => 0];
+                // 保険：キーが欠けてても落とさない
+                $overtime = [
+                    'in'  => (int)($overtime['in']  ?? 0),
+                    'out' => (int)($overtime['out'] ?? 0),
+                ];
             }
+
+            $overtimeTotal = $overtime['in'] + $overtime['out'];
+
+            // ✅ 深夜（rule無しならnull）
+            $nightMinutes = $rule ? $a->nightMinutesForRule($rule) : null;
 
             return [
                 'id' => $a->id,
                 'work_date' => $a->work_date->toDateString(),
                 'clock_in'  => optional($a->clock_in)->format('H:i'),
                 'clock_out' => optional($a->clock_out)->format('H:i'),
-                'worked_minutes' => $workedMinutes,
+                'scheduled_work_minutes' => $scheduled_work_minutes,
                 'note' => $a->note,
                 'user' => [
                     'id' => $a->user->id,
@@ -58,27 +76,31 @@ class AttendanceController extends Controller
                     'email' => $a->user->email,
                 ],
                 'updated_at' => $a->updated_at?->toISOString(),
-                'overtime_minutes' => $rule ? $a->overtimeMinutesForRule($rule) : null,
-                'night_minutes' => $a->nightMinutesForRule($rule),
-                
 
+                // ✅ 新：A案（フロントはこれを見る）
+                'overtime' => $overtime,
+
+                // ✅ 旧：互換用（残しておくと安全）
+                'overtime_minutes' => $rule ? $overtimeTotal : null,
+
+                'night_minutes' => $nightMinutes,
             ];
         });
 
-
-    return Inertia::render('Admin/Attendances/Index', [
+        return Inertia::render('Admin/Attendances/Index', [
             'filters' => [
                 'date' => $date,
             ],
             'attendances' => [
-                'data' => $items->values()->all(), // ✅ ここ
+                'data' => $items->values()->all(),
                 'links' => $attendances->linkCollection(),
                 'total' => $attendances->total(),
-                
             ],
-            
         ]);
     }
+
+    // update はそのままでOK（省略）
+
 
 
 

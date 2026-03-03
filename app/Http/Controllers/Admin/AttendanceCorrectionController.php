@@ -50,7 +50,7 @@ public function index()
             }
 
             // ✅ 分計算（モデルメソッド）
-            $workedMinutes   = ($a && $rule) ? $a->workedMinutesForRule($rule) : null;
+            $workedMinutes   = ($a && $rule) ? $a->workedWithinScheduleMinutesForRule($rule) : null;
             $overtimeMinutes = ($a && $rule) ? $a->overtimeMinutesForRule($rule) : null;
             $totalMinutes    = ($a && $rule) ? $a->totalMinutesForRule($rule) : null;
 

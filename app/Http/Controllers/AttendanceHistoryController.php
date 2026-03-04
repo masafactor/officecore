@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Attendance;
+use App\Models\AttendanceClosing;
 use App\Models\WorkRule;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -26,6 +27,9 @@ class AttendanceHistoryController extends Controller
         [$y, $m] = array_map('intval', explode('-', $month));
         $from = Carbon::create($y, $m, 1)->startOfMonth();
         $to   = (clone $from)->endOfMonth();
+
+
+        $closing = AttendanceClosing::for($request->user(), $y, $m);
 
         $attendances = Attendance::query()
             ->where('user_id', $user->id)
@@ -110,11 +114,20 @@ class AttendanceHistoryController extends Controller
                 
             });
             
+
+        
         return Inertia::render('Attendances/Index', [
             'filters' => [
                 'month' => $month,
             ],
             'attendances' => $attendances,
+
+            'closing' => [
+            'status' => $closing?->status ?? AttendanceClosing::STATUS_DRAFT,
+            'submitted_at' => $closing?->submitted_at?->toISOString(),
+            'approved_at' => $closing?->approved_at?->toISOString(),
+            'approved_by' => $closing?->approved_by,
+            ],
         ]);
     }
 }

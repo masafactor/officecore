@@ -24,6 +24,15 @@ minutes: {
 
 type Link = { url: string | null; label: string; active: boolean }
 
+type ClosingStatus = 'draft' | 'submitted' | 'approved'
+
+type Closing = {
+  status: ClosingStatus
+  submitted_at: string | null
+  approved_at: string | null
+  approved_by: number | null
+}
+
 type Props = {
   filters: { month: string }
   attendances: {
@@ -31,6 +40,8 @@ type Props = {
     links: Link[]
     total: number
   }
+  closing: Closing
+  
 }
 
 const fmt = (v: string | null) => v ?? '—'
@@ -44,7 +55,7 @@ const fmtMinutes = (m: number) => {
   return `${h}h ${min}m`
 }
 
-export default function Index({ filters, attendances }: Props) {
+export default function Index({ filters, attendances ,closing}: Props) {
   const [month, setMonth] = useState(filters.month)
   const [targetAttendance, setTargetAttendance] = useState<AttendanceRow | null>(null)
 
@@ -55,6 +66,32 @@ export default function Index({ filters, attendances }: Props) {
 
   const openCorrection = (row: AttendanceRow) => {
     setTargetAttendance(row)
+  }
+  const ym = () => {
+  const y = Number(filters.month.slice(0, 4))
+  const m = Number(filters.month.slice(5, 7))
+  return { year: y, month: m }
+  }
+
+  const submitClosing = () => {
+    const { year, month } = ym()
+    router.post(route('attendance.closing.submit'), { year, month })
+  }
+
+  const cancelClosing = () => {
+    const { year, month } = ym()
+    router.post(route('attendance.closing.cancel'), { year, month })
+  }
+
+  // props.closing.status が 'draft' | 'submitted' | 'approved'
+  if (closing.status === 'draft') {
+    // 「この月を提出」→ POST attendance.closing.submit
+  }
+  if (closing.status === 'submitted') {
+    // 「提出済み（取り消し）」→ POST attendance.closing.cancel
+  }
+  if (closing.status === 'approved') {
+    // 「承認済み（ロック中）」表示
   }
 
   return (
@@ -84,7 +121,36 @@ export default function Index({ filters, attendances }: Props) {
 
                 <div className="ml-auto text-sm text-gray-600">
                   件数：{attendances.total}
+
+
+                  {closing.status === 'draft' && (
+                    <button
+                      type="button"
+                      onClick={submitClosing}
+                      className="rounded-md bg-gray-900 px-3 py-2 text-xs text-white"
+                    >
+                      この月を提出
+                    </button>
+                  )}
+
+                  {closing.status === 'submitted' && (
+                    <button
+                      type="button"
+                      onClick={cancelClosing}
+                      className="rounded-md border px-3 py-2 text-xs hover:bg-gray-50"
+                    >
+                      提出済み（取り消し）
+                    </button>
+                  )}
+
+                  {closing.status === 'approved' && (
+                    <span className="rounded-md border px-3 py-2 text-xs text-gray-700">
+                      承認済み（ロック中）
+                    </span>
+                  )}
                 </div>
+
+                
               </form>
 
               {/* ===== テーブル ===== */}
@@ -108,7 +174,7 @@ export default function Index({ filters, attendances }: Props) {
                   <tbody>
                     {attendances.data.length === 0 ? (
                       <tr>
-                        <td className="px-3 py-4 text-sm text-gray-600" colSpan={9}>
+                        <td className="px-3 py-4 text-sm text-gray-600" colSpan={10}>
                           この月の勤怠データはありません。
                         </td>
                       </tr>
@@ -173,10 +239,12 @@ export default function Index({ filters, attendances }: Props) {
                                 ? '—'
                                 : fmtMinutes(row.minutes.night)}
                             </td>
-
-                            {/* ===== 総労働時間 ===== */}{!row.clock_out || row.minutes.total_work_minutes === 0
+                            <td>
+                              {/* ===== 総労働時間 ===== */}{!row.clock_out || row.minutes.total_work_minutes === 0
                               ? '—'
                               : fmtMinutes(row.minutes.total_work_minutes)}
+                            </td>
+
 
                             {/* ===== 状態 + 遅刻早退 ===== */}
                             <td className="border px-3 py-2 text-sm">
@@ -207,11 +275,13 @@ export default function Index({ filters, attendances }: Props) {
                               <button
                                 type="button"
                                 onClick={() => openCorrection(row)}
-                                className="rounded-md border px-3 py-1 text-xs hover:bg-gray-50"
+                                disabled={closing.status === 'approved'}
+                                className="rounded-md border px-3 py-1 text-xs hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                                title={closing.status === 'approved' ? '承認済みの月は修正申請できません' : ''}
                               >
                                 修正申請
                               </button>
-                            </td>
+                              </td>
 
                             <td className="border px-3 py-2 text-sm text-gray-600">
                               {row.updated_at

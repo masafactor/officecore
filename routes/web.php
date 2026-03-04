@@ -11,6 +11,8 @@ use App\Http\Controllers\Admin\AttendanceCorrectionController as AdminAttendance
 use App\Http\Controllers\Admin\AttendanceController as AdminAttendanceController;
 use App\Http\Controllers\AttendanceHistoryController;
 use App\Http\Controllers\DailyReportController;
+use App\Http\Controllers\AttendanceClosingController;
+
 
 Route::get('/', function () {
     return Inertia::render('Welcome', [
@@ -220,5 +222,23 @@ Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(
     Route::patch('/users/{user}/work-rule', [\App\Http\Controllers\Admin\UserController::class, 'updateWorkRule'])->name('users.work-rule.update');
 });
 
+
+
+
+Route::middleware(['auth'])->group(function () {
+    // 一般ユーザー：提出・取り消し
+    Route::post('/attendance/closing/submit', [AttendanceClosingController::class, 'submit'])
+        ->name('attendance.closing.submit');
+    Route::post('/attendance/closing/cancel', [AttendanceClosingController::class, 'cancel'])
+        ->name('attendance.closing.cancel');
+
+    // 管理者：承認・承認解除（adminミドルウェアは適宜あなたの実装に合わせて）
+    Route::middleware(['can:admin'])->group(function () {
+        Route::post('/admin/attendance/closing/approve', [AttendanceClosingController::class, 'approve'])
+            ->name('admin.attendance.closing.approve');
+        Route::post('/admin/attendance/closing/unapprove', [AttendanceClosingController::class, 'unapprove'])
+            ->name('admin.attendance.closing.unapprove');
+    });
+});
 
 require __DIR__.'/auth.php';

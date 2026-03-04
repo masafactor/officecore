@@ -4,7 +4,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\Attendance;
+use App\Models\AttendanceClosing;
 use App\Models\AttendanceCorrection;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
@@ -16,12 +18,29 @@ class AttendanceCorrectionController extends Controller
         // 自分の勤怠だけ申請できる（管理者は別）
         abort_unless($attendance->user_id === Auth::id(), 403);
 
+
+        
+
         $validated = $request->validate([
             'clock_in_at'  => ['nullable', 'date'],  // "YYYY-MM-DD HH:MM"
             'clock_out_at' => ['nullable', 'date'],
             'note'         => ['nullable', 'string'],
             'reason'       => ['nullable', 'string', 'max:500'],
         ]);
+
+
+            // ★ 月締めガード
+        $date = Carbon::parse($request->work_date);
+
+        $closing = AttendanceClosing::where('user_id', auth()->id())
+            ->where('year', $date->year)
+            ->where('month', $date->month)
+            ->first();
+
+        if ($closing && $closing->status !== 'draft') {
+            return back()->with('error', 'この月は提出済みのため修正申請できません。');
+        }
+
 
         // 同じ勤怠に pending があるなら二重申請防止（必要なら）
         $alreadyPending = AttendanceCorrection::query()

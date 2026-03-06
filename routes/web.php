@@ -232,8 +232,12 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/attendance/closing/cancel', [AttendanceClosingController::class, 'cancel'])
         ->name('attendance.closing.cancel');
 
-    // 管理者：承認・承認解除（adminミドルウェアは適宜あなたの実装に合わせて）
-    Route::middleware(['can:admin'])->group(function () {
+    Route::middleware(['admin'])->group(function () {
+        // 管理画面表示
+        Route::get('/admin/attendance/closings', [\App\Http\Controllers\Admin\AttendanceClosingController::class, 'index'])
+            ->name('admin.attendance.closings.index');
+
+        // 管理者：承認・承認解除
         Route::post('/admin/attendance/closing/approve', [AttendanceClosingController::class, 'approve'])
             ->name('admin.attendance.closing.approve');
         Route::post('/admin/attendance/closing/unapprove', [AttendanceClosingController::class, 'unapprove'])

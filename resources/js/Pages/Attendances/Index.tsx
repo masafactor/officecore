@@ -133,6 +133,8 @@ export default function Index({ filters, attendances ,closing}: Props) {
                     </button>
                   )}
 
+                  
+
                   {closing.status === 'submitted' && (
                     <button
                       type="button"

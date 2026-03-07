@@ -1,5 +1,5 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout'
-import { Head, router, usePage } from '@inertiajs/react'
+import { Head, Link, router, usePage } from '@inertiajs/react'
 import { FormEvent, useState } from 'react'
 
 type ClosingStatus = 'draft' | 'submitted' | 'approved'
@@ -85,7 +85,7 @@ export default function Index({ filters, closings }: Props) {
 
   return (
     <AuthenticatedLayout>
-      <Head title="勤怠締め承認管理" />
+      <Head title="月次申請管理画面" />
 
       <div className="max-w-7xl mx-auto p-6">
         <h1 className="text-2xl font-bold mb-6">月次申請管理画面</h1>
@@ -191,6 +191,17 @@ export default function Index({ filters, closings }: Props) {
                         {row.status === 'draft' && (
                           <span className="text-gray-400">操作なし</span>
                         )}
+
+                        <Link
+                        href={route('admin.attendance.closings.show', {
+                          user: row.user_id,
+                          year: row.year,
+                          month: row.month,
+                        })}
+                        className="rounded bg-slate-600 px-3 py-1 text-white hover:bg-slate-700"
+                      >
+                        詳細
+                      </Link>
                       </div>
                     </td>
                   </tr>

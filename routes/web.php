@@ -242,6 +242,12 @@ Route::middleware(['auth'])->group(function () {
             ->name('admin.attendance.closing.approve');
         Route::post('/admin/attendance/closing/unapprove', [AttendanceClosingController::class, 'unapprove'])
             ->name('admin.attendance.closing.unapprove');
+
+        Route::get('/admin/attendance/closings/{user}/{year}/{month}', [\App\Http\Controllers\Admin\AttendanceClosingController::class, 'show'])
+            ->whereNumber('user')
+            ->whereNumber('year')
+            ->whereNumber('month')
+            ->name('admin.attendance.closings.show');
     });
 });
 

@@ -12,7 +12,7 @@ use App\Http\Controllers\Admin\AttendanceController as AdminAttendanceController
 use App\Http\Controllers\AttendanceHistoryController;
 use App\Http\Controllers\DailyReportController;
 use App\Http\Controllers\AttendanceClosingController;
-
+use App\Http\Controllers\AttendancePdfController;
 
 Route::get('/', function () {
     return Inertia::render('Welcome', [
@@ -250,5 +250,35 @@ Route::middleware(['auth'])->group(function () {
             ->name('admin.attendance.closings.show');
     });
 });
+
+Route::middleware(['auth'])->group(function () {
+    Route::get('/attendance/pdf/{year}/{month}', [AttendancePdfController::class, 'downloadMyMonthly'])
+        ->whereNumber('year')
+        ->whereNumber('month')
+        ->name('attendance.pdf.monthly');
+
+    Route::middleware(['admin'])->group(function () {
+        Route::get('/admin/attendance/closings/{user}/{year}/{month}/pdf', [AttendancePdfController::class, 'downloadMonthly'])
+            ->whereNumber('user')
+            ->whereNumber('year')
+            ->whereNumber('month')
+            ->name('admin.attendance.closings.pdf');
+    });
+});
+
+Route::middleware(['auth'])->group(function () {
+    Route::get('/attendance/pdf/{year}/{month}', [AttendancePdfController::class, 'downloadMyMonthly'])
+        ->whereNumber('year')
+        ->whereNumber('month')
+        ->name('attendance.pdf.monthly');
+
+});
+
+
+
+Route::get(
+    '/admin/attendance-request-details/{user}/{year}/{month}/pdf',
+    [\App\Http\Controllers\Admin\AttendancePdfController::class, 'downloadMonthlyRequestDetail']
+)->name('admin.attendance-request-details.pdf');
 
 require __DIR__.'/auth.php';

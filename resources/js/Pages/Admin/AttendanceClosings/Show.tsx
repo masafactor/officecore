@@ -105,6 +105,16 @@ export default function Show({
               {user.name} / {year}年{month}月
             </p>
           </div>
+        <a
+          href={route('admin.attendance-request-details.pdf', {
+              user: user.id,
+              year,
+              month,
+          })}
+          className="inline-flex items-center rounded-md border px-4 py-2 text-sm font-medium hover:bg-gray-50"
+        >
+          PDF出力
+      </a>
 
           <Link
             href={route('admin.attendance.closings.index', { year, month })}

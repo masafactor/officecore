@@ -1,6 +1,6 @@
 import AttendanceCorrectionForm from '@/Components/AttendanceCorrectionForm'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout'
-import { Head, router } from '@inertiajs/react'
+import { Head, Link, router } from '@inertiajs/react'
 import { useState } from 'react'
 
 type AttendanceRow = {
@@ -55,10 +55,16 @@ const fmtMinutes = (m: number) => {
   return `${h}h ${min}m`
 }
 
+
 export default function Index({ filters, attendances ,closing}: Props) {
   const [month, setMonth] = useState(filters.month)
   const [targetAttendance, setTargetAttendance] = useState<AttendanceRow | null>(null)
 
+  const pdfYm = () => {
+    const y = Number(month.slice(0, 4))
+    const m = Number(month.slice(5, 7))
+    return { year: y, month: m }
+  }
   const submit = (e: React.FormEvent) => {
     e.preventDefault()
     router.get('/attendances', { month }, { preserveState: true })
@@ -94,12 +100,22 @@ export default function Index({ filters, attendances ,closing}: Props) {
     // 「承認済み（ロック中）」表示
   }
 
+  
+
   return (
     <AuthenticatedLayout header={<h2 className="text-xl font-semibold leading-tight text-gray-800">勤怠履歴</h2>}>
       <Head title="勤怠履歴" />
 
       <div className="py-12">
         <div className="mx-auto max-w-7xl sm:px-6 lg:px-8">
+       <a
+          href={route('attendance.pdf.monthly', ym())}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center rounded bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
+        >
+          PDF出力
+        </a>
           <div className="overflow-hidden bg-white shadow-sm sm:rounded-lg">
             <div className="p-6 text-gray-900 space-y-6">
 

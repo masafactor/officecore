@@ -17,6 +17,7 @@ type ClosingRow = {
   approved_by_name: string | null
 }
 
+
 type Props = {
   filters: {
     year: number
@@ -83,10 +84,47 @@ export default function Index({ filters, closings }: Props) {
     )
   }
 
+  const csrfToken =
+  document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? '';
+
+  const pdfUsers = Array.from(
+    new Map(
+      closings.map((row) => [
+        row.user_id,
+        { id: row.user_id, name: row.user_name },
+      ])
+    ).values()
+  );
+
+  const [selectedUserIds, setSelectedUserIds] = useState<number[]>([]);
+
+  const allSelected =
+  pdfUsers.length > 0 && selectedUserIds.length === pdfUsers.length;
+
+  const toggleAllUsers = () => {
+  if (allSelected) {
+    setSelectedUserIds([]);
+    return;
+  }
+
+  setSelectedUserIds(pdfUsers.map((user) => user.id));
+};
+
+const toggleUser = (userId: number) => {
+  setSelectedUserIds((prev) =>
+    prev.includes(userId)
+      ? prev.filter((id) => id !== userId)
+      : [...prev, userId]
+  );
+};
+
+ console.log('csrfToken=', csrfToken);
+
   return (
     <AuthenticatedLayout>
       <Head title="月次申請管理画面" />
-
+      
+      
       <div className="max-w-7xl mx-auto p-6">
         <h1 className="text-2xl font-bold mb-6">月次申請管理画面</h1>
 
@@ -130,6 +168,58 @@ export default function Index({ filters, closings }: Props) {
             className="rounded bg-blue-600 text-white px-4 py-2 hover:bg-blue-700"
           >
             検索
+          </button>
+        </form>
+
+        <form
+        method="POST"
+        action={route('admin.monthly-approvals.bulk-pdf', {
+          year: Number(year),
+          month: Number(month),
+        })}
+        target="_blank"
+        className="mb-6 rounded bg-white p-4 shadow"
+      
+        >
+          
+          <input type="hidden" name="_token" value={csrfToken} />
+
+          {selectedUserIds.map((id) => (
+            <input key={id} type="hidden" name="user_ids[]" value={id} />
+          ))}
+         
+          <div className="mb-3 flex items-center justify-between">
+            <div className="text-sm font-bold">PDF出力対象</div>
+
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={allSelected}
+                onChange={toggleAllUsers}
+              />
+              <span>全選択</span>
+            </label>
+          </div>
+
+          <div className="mb-4 grid grid-cols-1 gap-2 md:grid-cols-3">
+            {pdfUsers.map((user) => (
+              <label key={user.id} className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={selectedUserIds.includes(user.id)}
+                  onChange={() => toggleUser(user.id)}
+                />
+                <span>{user.name}</span>
+              </label>
+            ))}
+          </div>
+
+          <button
+            type="submit"
+            disabled={selectedUserIds.length === 0}
+            className="rounded bg-slate-700 px-4 py-2 text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300"
+          >
+            一括PDF出力
           </button>
         </form>
 

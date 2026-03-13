@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\AttendanceBulkPdfController;
 use App\Http\Controllers\ProfileController;
 use App\Models\Attendance;
 use App\Models\WorkRule;
@@ -281,4 +282,10 @@ Route::get(
     [\App\Http\Controllers\Admin\AttendancePdfController::class, 'downloadMonthlyRequestDetail']
 )->name('admin.attendance-request-details.pdf');
 
+Route::middleware(['auth'])->group(function () {
+    Route::post(
+        '/admin/monthly-approvals/{year}/{month}/bulk-pdf',
+        [AttendanceBulkPdfController::class, 'download']
+    )->name('admin.monthly-approvals.bulk-pdf');
+});
 require __DIR__.'/auth.php';

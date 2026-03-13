@@ -14,14 +14,12 @@ class MonthlyAttendancePdfService
         return $pdf->download($fileName);
     }
 
-    public function downloadBulk(array $reports, int $year, int $month): Response
+    public function downloadBulk(array $reports, string $fileName = 'monthly-attendance-bulk.pdf'): Response
     {
-        $filename = sprintf('attendance_bulk_%04d_%02d.pdf', $year, $month);
-
-        return Pdf::loadView('pdf.monthly-attendance-bulk', [
+        $pdf = Pdf::loadView('pdf.monthly-attendance-bulk', [
             'reports' => $reports,
-            'year' => $year,
-            'month' => $month,
-        ])->download($filename);
+        ]);
+
+        return $pdf->download($fileName);
     }
 }

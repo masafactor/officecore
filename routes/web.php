@@ -14,6 +14,7 @@ use App\Http\Controllers\AttendanceHistoryController;
 use App\Http\Controllers\DailyReportController;
 use App\Http\Controllers\AttendanceClosingController;
 use App\Http\Controllers\AttendancePdfController;
+use App\Http\Controllers\DailyReportPdfController;
 
 Route::get('/', function () {
     return Inertia::render('Welcome', [
@@ -288,4 +289,10 @@ Route::middleware(['auth'])->group(function () {
         [AttendanceBulkPdfController::class, 'download']
     )->name('admin.monthly-approvals.bulk-pdf');
 });
+
+Route::middleware(['auth'])->group(function () {
+    Route::get('/daily-reports/pdf/weekly', [DailyReportPdfController::class, 'downloadWeekly'])
+        ->name('daily-reports.pdf.weekly');
+});
+
 require __DIR__.'/auth.php';

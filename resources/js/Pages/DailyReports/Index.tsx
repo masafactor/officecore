@@ -1,6 +1,6 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout'
 import { Head, router, useForm, usePage } from '@inertiajs/react'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 
 type HistoryRow = {
   id: number
@@ -46,14 +46,63 @@ export default function Index({ date, current, history }: Props) {
     form.post(route('daily-reports.store'), { preserveScroll: true })
   }
 
+  
+  const getThisWeekMonday = () => {
+  const today = new Date();
+  const day = today.getDay(); // 0: 日, 1: 月, ..., 6: 土
+  const diff = day === 0 ? -6 : 1 - day; // 月曜始まりに合わせる
+
+  const monday = new Date(today);
+  monday.setDate(today.getDate() + diff);
+
+  const yyyy = monday.getFullYear();
+  const mm = String(monday.getMonth() + 1).padStart(2, '0');
+  const dd = String(monday.getDate()).padStart(2, '0');
+
+  return `${yyyy}-${mm}-${dd}`;
+};
+
+  const [weekStart, setWeekStart] = useState(getThisWeekMonday());
+
   return (
     <AuthenticatedLayout header={<h2 className="text-xl font-semibold leading-tight text-gray-800">勤務日報</h2>}>
       <Head title="勤務日報" />
 
+
       <div className="py-12">
+        
         <div className="mx-auto max-w-4xl sm:px-6 lg:px-8">
           <div className="overflow-hidden bg-white shadow-sm sm:rounded-lg">
+            
             <div className="p-6 space-y-6">
+                <section className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+                  <div className="mb-3 text-sm font-semibold text-gray-800">週間日報PDF</div>
+
+                  <form
+                    method="GET"
+                    action={route('daily-reports.pdf.weekly')}
+                    target="_blank"
+                    className="flex flex-col gap-3 sm:flex-row sm:items-end"
+                  >
+                    <div className="flex flex-col">
+                      <label className="mb-1 text-sm font-medium text-gray-700">週の開始日</label>
+                      <input
+                        type="date"
+                        name="week_start"
+                        value={weekStart}
+                        onChange={(e) => setWeekStart(e.target.value)}
+                        className="h-11 rounded-lg border border-gray-300 px-3 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                      />
+                    </div>
+
+                    <button
+                      type="submit"
+                      className="inline-flex h-11 items-center justify-center rounded-lg bg-blue-600 px-5 text-sm font-bold text-white shadow-sm transition hover:bg-blue-700 active:translate-y-px"
+                    >
+                      1週間分PDF出力
+                    </button>
+                  </form>
+                </section>
 
               {(flash?.success || flash?.error) && (
                 <div className="space-y-2">
@@ -62,8 +111,11 @@ export default function Index({ date, current, history }: Props) {
                 </div>
               )}
 
+              <h1 className="text-2xl font-bold text-gray-900">本日の日報</h1>
+
               <form onSubmit={submit} className="space-y-4">
                 <div className="flex flex-wrap items-end gap-3">
+                  
                   <div>
                     <label className="block text-xs text-gray-600">対象日</label>
                     <input

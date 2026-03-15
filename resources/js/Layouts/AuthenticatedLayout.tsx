@@ -65,6 +65,7 @@
                                             </NavLink>
 
 
+
                                             {isAdmin && (
                                                 <div className="relative flex items-center justify-center">
                                                     <button
@@ -129,6 +130,13 @@
                                                                     active={route().current('admin.attendance.closings.*')}
                                                                 >
                                                                     月次申請管理
+                                                                </NavLink>
+
+                                                                <NavLink
+                                                                    href={route('admin.daily-reports.index')}
+                                                                    active={route().current('admin.daily-reports.*')}
+                                                                >
+                                                                    勤務日報管理
                                                                 </NavLink>
                                                             </div>
                                                         </div>
@@ -298,6 +306,14 @@
                                                         active={route().current('admin.work-rules.*')}
                                                     >
                                                         勤務ルール設定
+                                                    </ResponsiveNavLink>
+
+                                                    
+                                                    <ResponsiveNavLink
+                                                        href={route('admin.daily-reports.index')}
+                                                        active={route().current('admin.daily-reports.*')}
+                                                    >
+                                                        勤務日報管理
                                                     </ResponsiveNavLink>
                                                 </div>
                                             )}

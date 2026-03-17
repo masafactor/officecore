@@ -21,10 +21,23 @@ export default function Show({ dailyReport }: Props) {
       header={<h2 className="text-xl font-semibold leading-tight text-gray-800">日報詳細</h2>}
     >
       <Head title="日報詳細" />
+      
 
       <div className="py-10">
         <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
           <div className="overflow-hidden rounded-xl bg-white shadow-sm">
+
+
+                    <div className="flex items-center gap-2">
+                        <a
+                            href={route('admin.daily-reports.pdf.show', dailyReport.id)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center rounded bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
+                        >
+                            PDF表示
+                        </a>
+                    </div>
             <div className="p-6 md:p-8">
               <div className="mb-6">
                 <Link

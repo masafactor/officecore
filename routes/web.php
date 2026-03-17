@@ -301,6 +301,9 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
 
     Route::get('/daily-reports/{dailyReport}', [\App\Http\Controllers\Admin\DailyReportController::class, 'show'])
         ->name('daily-reports.show');
+
+    Route::get('/daily-reports/{dailyReport}/pdf', [App\Http\Controllers\Admin\DailyReportPdfController::class, 'show'])
+            ->name('daily-reports.pdf.show');
 });
 
 require __DIR__.'/auth.php';

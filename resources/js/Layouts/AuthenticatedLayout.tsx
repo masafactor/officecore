@@ -22,6 +22,59 @@
             }
             }
 
+            const adminMenuGroups = [
+                {
+                    title: '勤怠管理',
+                    items: [
+                        {
+                            label: '勤怠一覧',
+                            href: '/admin/attendances',
+                            active: route().current('admin.attendances.*'),
+                        },
+                        {
+                            label: '修正申請',
+                            href: '/admin/attendance-corrections',
+                            active: route().current('admin.attendance-corrections.*'),
+                        },
+                        {
+                            label: '月次集計',
+                            href: '/admin/reports/monthly',
+                            active: route().current('admin.reports.monthly'),
+                        },
+                        {
+                            label: '月次申請管理',
+                            href: route('admin.attendance.closings.index'),
+                            active: route().current('admin.attendance.closings.*'),
+                        },
+                    ],
+                },
+                {
+                    title: 'マスタ管理',
+                    items: [
+                        {
+                            label: 'ユーザー管理',
+                            href: route('admin.users.index'),
+                            active: route().current('admin.users.*'),
+                        },
+                        {
+                            label: '勤務ルール設定',
+                            href: route('admin.work-rules.edit'),
+                            active: route().current('admin.work-rules.*'),
+                        },
+                    ],
+                },
+                {
+                    title: '日報管理',
+                    items: [
+                        {
+                            label: '勤務日報管理',
+                            href: route('admin.daily-reports.index'),
+                            active: route().current('admin.daily-reports.*'),
+                        },
+                    ],
+                },
+            ];
+
             const [showingAdminDropdown, setShowingAdminDropdown] = useState(false)
             const [showingResponsiveAdminMenu, setShowingResponsiveAdminMenu] = useState(false)
 
@@ -89,58 +142,35 @@
                                                     </button>
 
                                                     {showingAdminDropdown && (
-                                                        <div className="absolute left-1/2 top-full z-50 mt-2 w-56 -translate-x-1/2 rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5">
-                                                            <div className="py-1">
-                                                                <NavLink
-                                                                    href="/admin/attendances"
-                                                                    active={route().current('admin.attendances.*')}
-                                                                >
-                                                                    勤怠一覧
-                                                                </NavLink>
+                                                        <div className="absolute left-1/2 top-full z-50 mt-2 w-72 -translate-x-1/2 rounded-xl bg-white p-3 shadow-lg ring-1 ring-black/5">
+                                                            <div className="space-y-3">
+                                                                {adminMenuGroups.map((group) => (
+                                                                    <div key={group.title}>
+                                                                        <div className="mb-2 px-2 text-xs font-semibold tracking-wide text-gray-400">
+                                                                            {group.title}
+                                                                        </div>
 
-                                                                <NavLink
-                                                                    href="/admin/attendance-corrections"
-                                                                    active={route().current('admin.attendance-corrections.*')}
-                                                                >
-                                                                    修正申請
-                                                                </NavLink>
-
-                                                                <NavLink
-                                                                    href="/admin/reports/monthly"
-                                                                    active={route().current('admin.reports.monthly')}
-                                                                >
-                                                                    月次集計
-                                                                </NavLink>
-
-                                                                <NavLink
-                                                                    href={route('admin.users.index')}
-                                                                    active={route().current('admin.users.*')}
-                                                                >
-                                                                    ユーザー管理
-                                                                </NavLink>
-
-                                                                <NavLink
-                                                                    href={route('admin.work-rules.edit')}
-                                                                    active={route().current('admin.work-rules.*')}
-                                                                >
-                                                                    勤務ルール設定
-                                                                </NavLink>
-                                                                <NavLink
-                                                                    href={route('admin.attendance.closings.index')}
-                                                                    active={route().current('admin.attendance.closings.*')}
-                                                                >
-                                                                    月次申請管理
-                                                                </NavLink>
-
-                                                                <NavLink
-                                                                    href={route('admin.daily-reports.index')}
-                                                                    active={route().current('admin.daily-reports.*')}
-                                                                >
-                                                                    勤務日報管理
-                                                                </NavLink>
+                                                                        <div className="grid grid-cols-2 gap-1">
+                                                                            {group.items.map((item) => (
+                                                                                <Link
+                                                                                    key={item.label}
+                                                                                    href={item.href}
+                                                                                    className={`rounded-md px-3 py-2 text-sm font-medium transition ${
+                                                                                        item.active
+                                                                                            ? 'bg-indigo-50 text-indigo-700'
+                                                                                            : 'text-gray-700 hover:bg-gray-100'
+                                                                                    }`}
+                                                                                >
+                                                                                    {item.label}
+                                                                                </Link>
+                                                                            ))}
+                                                                        </div>
+                                                                    </div>
+                                                                ))}
                                                             </div>
                                                         </div>
                                                     )}
+
                                                 </div>
                                             )}
                                             
@@ -271,50 +301,28 @@
                                                 </svg>
                                             </button>
 
+  
                                             {showingResponsiveAdminMenu && (
-                                                <div className="mt-2 space-y-1">
-                                                    <ResponsiveNavLink
-                                                        href="/admin/attendances"
-                                                        active={route().current('admin.attendances.*')}
-                                                    >
-                                                        勤怠一覧
-                                                    </ResponsiveNavLink>
+                                                <div className="mt-2 space-y-3 px-2">
+                                                    {adminMenuGroups.map((group) => (
+                                                        <div key={group.title}>
+                                                            <div className="px-2 pb-1 text-xs font-semibold tracking-wide text-gray-400">
+                                                                {group.title}
+                                                            </div>
 
-                                                    <ResponsiveNavLink
-                                                        href="/admin/attendance-corrections"
-                                                        active={route().current('admin.attendance-corrections.*')}
-                                                    >
-                                                        修正申請
-                                                    </ResponsiveNavLink>
-
-                                                    <ResponsiveNavLink
-                                                        href="/admin/reports/monthly"
-                                                        active={route().current('admin.reports.monthly')}
-                                                    >
-                                                        月次集計
-                                                    </ResponsiveNavLink>
-
-                                                    <ResponsiveNavLink
-                                                        href={route('admin.users.index')}
-                                                        active={route().current('admin.users.*')}
-                                                    >
-                                                        ユーザー管理
-                                                    </ResponsiveNavLink>
-
-                                                    <ResponsiveNavLink
-                                                        href={route('admin.work-rules.edit')}
-                                                        active={route().current('admin.work-rules.*')}
-                                                    >
-                                                        勤務ルール設定
-                                                    </ResponsiveNavLink>
-
-                                                    
-                                                    <ResponsiveNavLink
-                                                        href={route('admin.daily-reports.index')}
-                                                        active={route().current('admin.daily-reports.*')}
-                                                    >
-                                                        勤務日報管理
-                                                    </ResponsiveNavLink>
+                                                            <div className="space-y-1">
+                                                                {group.items.map((item) => (
+                                                                    <ResponsiveNavLink
+                                                                        key={item.label}
+                                                                        href={item.href}
+                                                                        active={item.active}
+                                                                    >
+                                                                        {item.label}
+                                                                    </ResponsiveNavLink>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    ))}
                                                 </div>
                                             )}
                                         </div>

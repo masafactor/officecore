@@ -57,13 +57,17 @@ class DailyReportController extends Controller
         $validated = $request->validate([
             'report_date' => ['required', 'date'],
             'content' => ['nullable', 'string'],
+            'status' => ['required', 'in:draft,submitted'],
         ]);
 
         $date = Carbon::parse($validated['report_date'])->toDateString();
 
-        DailyReport::updateOrCreate(
+       DailyReport::updateOrCreate(
             ['user_id' => $user->id, 'report_date' => $date],
-            ['content' => $validated['content'] ?? null, 'status' => 'draft']
+            [
+                'content' => $validated['content'] ?? null,
+                'status' => $validated['status'],
+            ]
         );
 
         return redirect()->route('daily-reports.index', ['date' => $date])

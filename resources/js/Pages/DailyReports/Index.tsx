@@ -28,12 +28,14 @@ export default function Index({ date, current, history }: Props) {
   const form = useForm({
     report_date: date,
     content: current?.content ?? '',
+    status: current?.status ?? 'draft',
   })
 
   // 日付が変わったらフォームを同期（Inertia遷移時のズレ防止）
   useEffect(() => {
     form.setData('report_date', date)
     form.setData('content', current?.content ?? '')
+    form.setData('status', current?.status ?? 'draft')
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [date, current?.id])
 
@@ -61,6 +63,7 @@ export default function Index({ date, current, history }: Props) {
 
   return `${yyyy}-${mm}-${dd}`;
 };
+
 
   const [weekStart, setWeekStart] = useState(getThisWeekMonday());
 
@@ -141,6 +144,17 @@ export default function Index({ date, current, history }: Props) {
                     placeholder="今日やったこと、詰まったこと、明日やること…など"
                   />
                   {form.errors.content && <div className="mt-1 text-xs text-red-600">{form.errors.content}</div>}
+                </div>
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-gray-700">状態</label>
+                  <select
+                    value={form.data.status}
+                    onChange={(e) => form.setData('status', e.target.value)}
+                    className="h-11 w-full rounded-lg border border-gray-300 px-3 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                  >
+                    <option value="draft">下書き</option>
+                    <option value="submitted">提出</option>
+                  </select>
                 </div>
 
                 <button

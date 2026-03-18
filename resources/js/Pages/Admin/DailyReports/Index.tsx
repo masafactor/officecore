@@ -75,6 +75,20 @@ export default function Index({ filters, users, dailyReports }: Props) {
     )
   }
 
+  const buildBulkPdfUrl = () => {
+  const params = new URLSearchParams()
+
+  if (date) params.append('date', date)
+  if (userId) params.append('user_id', userId)
+  if (keyword) params.append('keyword', keyword)
+
+  const query = params.toString()
+
+  return query
+    ? `${route('admin.daily-reports.pdf.index')}?${query}`
+    : route('admin.daily-reports.pdf.index')
+}
+
   return (
     <AuthenticatedLayout
       header={<h2 className="text-xl font-semibold leading-tight text-gray-800">日報管理</h2>}
@@ -139,6 +153,15 @@ export default function Index({ filters, users, dailyReports }: Props) {
                       >
                         リセット
                       </button>
+
+                      <a
+                        href={buildBulkPdfUrl()}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex h-11 items-center justify-center rounded-lg bg-emerald-600 px-4 text-sm font-semibold text-white transition hover:bg-emerald-700"
+                      >
+                        一括PDF
+                      </a>
                     </div>
                   </form>
                 </section>

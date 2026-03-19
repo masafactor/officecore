@@ -20,6 +20,7 @@ class DailyReportController extends Controller
 
         $query = DailyReport::query()
             ->with('user:id,name')
+            ->where('status', 'submitted')
             ->when(!empty($filters['date']), function ($q) use ($filters) {
                 $q->whereDate('report_date', $filters['date']);
             })

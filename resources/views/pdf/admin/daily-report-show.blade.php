@@ -128,12 +128,7 @@
                     <th>勤務日</th>
                     <td>{{ \Carbon\Carbon::parse($dailyReport->report_date)->format('Y-m-d') }}</td>
                 </tr>
-                <tr>
-                    <th>ステータス</th>
-                    <td>
-                        <span class="status">{{ $dailyReport->status }}</span>
-                    </td>
-                </tr>
+                
             </table>
 
             <h2 class="section-title">内容</h2>

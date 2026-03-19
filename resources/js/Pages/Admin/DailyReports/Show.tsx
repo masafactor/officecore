@@ -60,10 +60,6 @@ export default function Show({ dailyReport }: Props) {
                       <div className="text-base text-gray-900">{dailyReport.report_date}</div>
                     </div>
                     <div>
-                      <div className="mb-1 text-sm font-medium text-gray-500">状態</div>
-                      <div className="text-base text-gray-900">{dailyReport.status}</div>
-                    </div>
-                    <div>
                       <div className="mb-1 text-sm font-medium text-gray-500">更新日時</div>
                       <div className="text-base text-gray-900">{dailyReport.updated_at ?? '—'}</div>
                     </div>

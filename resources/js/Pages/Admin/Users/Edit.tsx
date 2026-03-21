@@ -4,7 +4,6 @@ import { Head, useForm, usePage, Link } from '@inertiajs/react'
 type Props = {
   user: { id: number; name: string; email: string; role: string }
 
-  // 勤務ルール
   workRules: { id: number; name: string }[]
   currentWorkRule: { id: number; name: string } | null
   histories: {
@@ -15,14 +14,33 @@ type Props = {
     end_date: string | null
   }[]
 
-  // ✅ 雇用形態
   employmentTypes: { id: number; code: string; name: string }[]
-  currentEmployment: { id: number; code: string; name: string } | null
+  wageTables: {
+    id: number
+    employment_type_id: number
+    code: string
+    name: string
+    hourly_wage: number
+  }[]
+  currentEmployment: {
+    id: number
+    employment_type_id: number
+    employment_type_code: string | null
+    employment_type_name: string | null
+    wage_table_id: number | null
+    wage_table_name: string | null
+    hourly_wage: number | null
+    start_date: string | null
+    end_date: string | null
+  } | null
   employmentHistories: {
     id: number
     employment_type_id: number
     employment_type_name: string | null
     employment_type_code: string | null
+    wage_table_id: number | null
+    wage_table_name: string | null
+    hourly_wage: number | null
     start_date: string
     end_date: string | null
   }[]
@@ -36,6 +54,7 @@ export default function Edit({
   employmentTypes,
   currentEmployment,
   employmentHistories,
+  wageTables,
 }: Props) {
   const flash = usePage<any>().props.flash
 
@@ -52,7 +71,12 @@ export default function Edit({
 
   // ✅ 雇用形態割当フォーム
   const employmentForm = useForm({
-    employment_type_id: currentEmployment?.id ? String(currentEmployment.id) : '',
+    employment_type_id: currentEmployment?.employment_type_id
+      ? String(currentEmployment.employment_type_id)
+      : '',
+    wage_table_id: currentEmployment?.wage_table_id
+      ? String(currentEmployment.wage_table_id)
+      : '',
     start_date: new Date().toISOString().slice(0, 10),
   })
 
@@ -60,6 +84,10 @@ export default function Edit({
     e.preventDefault()
     employmentForm.patch(route('admin.users.employment.update', user.id))
   }
+
+  const filteredWageTables = wageTables.filter(
+    (w) => String(w.employment_type_id) === employmentForm.data.employment_type_id
+  )
 
   return (
     <AuthenticatedLayout header={<h2 className="text-xl font-semibold leading-tight text-gray-800">ユーザー編集</h2>}>
@@ -101,7 +129,7 @@ export default function Edit({
                 </div>
                 <div className="rounded-md bg-gray-50 p-4">
                   <div className="text-sm text-gray-700">
-                    現在の雇用形態：{currentEmployment ? currentEmployment.name : '未設定'}
+                    現在の雇用形態：{currentEmployment ? currentEmployment.employment_type_name : '未設定'}
                   </div>
                 </div>
               </div>
@@ -132,6 +160,7 @@ export default function Edit({
                           <div className="mt-1 text-xs text-red-600">{workRuleForm.errors.work_rule_id}</div>
                         )}
                       </div>
+                      
 
                       <div>
                         <label className="block text-xs text-gray-600">適用開始日</label>
@@ -171,7 +200,10 @@ export default function Edit({
                         <label className="block text-xs text-gray-600">雇用形態</label>
                         <select
                           value={employmentForm.data.employment_type_id}
-                          onChange={(e) => employmentForm.setData('employment_type_id', e.target.value)}
+                          onChange={(e) => {
+                            employmentForm.setData('employment_type_id', e.target.value)
+                            employmentForm.setData('wage_table_id', '')
+                          }}
                           className="mt-1 w-full rounded-md border-gray-300 text-sm"
                         >
                           <option value="">選択してください</option>
@@ -183,6 +215,24 @@ export default function Edit({
                         </select>
                         {employmentForm.errors.employment_type_id && (
                           <div className="mt-1 text-xs text-red-600">{employmentForm.errors.employment_type_id}</div>
+                        )}
+                      </div>
+                      <div>
+                        <label className="block text-xs text-gray-600">賃金テーブル</label>
+                        <select
+                          value={employmentForm.data.wage_table_id}
+                          onChange={(e) => employmentForm.setData('wage_table_id', e.target.value)}
+                          className="mt-1 w-full rounded-md border-gray-300 text-sm"
+                        >
+                          <option value="">選択してください</option>
+                          {filteredWageTables.map((t) => (
+                            <option key={t.id} value={String(t.id)}>
+                              {t.name}（{t.hourly_wage}円）
+                            </option>
+                          ))}
+                        </select>
+                        {employmentForm.errors.wage_table_id && (
+                          <div className="mt-1 text-xs text-red-600">{employmentForm.errors.wage_table_id}</div>
                         )}
                       </div>
 

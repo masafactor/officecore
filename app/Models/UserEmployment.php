@@ -10,6 +10,7 @@ class UserEmployment extends Model
     protected $fillable = [
         'user_id',
         'employment_type_id',
+        'wage_table_id',
         'start_date',
         'end_date',
     ];
@@ -37,5 +38,11 @@ class UserEmployment extends Model
         if ($this->end_date && $this->end_date->lt($d)) return false;
 
         return true;
+    }
+
+
+    public function wageTable(): BelongsTo
+    {
+        return $this->belongsTo(WageTable::class);
     }
 }

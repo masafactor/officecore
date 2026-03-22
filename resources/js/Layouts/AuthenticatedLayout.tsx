@@ -46,6 +46,11 @@
                             href: route('admin.attendance.closings.index'),
                             active: route().current('admin.attendance.closings.*'),
                         },
+                        {
+                            label: '賃金テーブル管理',
+                            href: route('admin.wage-tables.index'),
+                            active: route().current('admin.wage-tables.*'),
+                        },
                     ],
                 },
                 {

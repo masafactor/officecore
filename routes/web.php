@@ -10,6 +10,7 @@ use Inertia\Inertia;
 use App\Http\Controllers\AttendanceCorrectionController;
 use App\Http\Controllers\Admin\AttendanceCorrectionController as AdminAttendanceCorrectionController;
 use App\Http\Controllers\Admin\AttendanceController as AdminAttendanceController;
+use App\Http\Controllers\Admin\WageTableController;
 use App\Http\Controllers\AttendanceHistoryController;
 use App\Http\Controllers\DailyReportController;
 use App\Http\Controllers\AttendanceClosingController;
@@ -306,7 +307,24 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
         ->name('daily-reports.show');
 
     Route::get('/daily-reports/{dailyReport}/pdf', [App\Http\Controllers\Admin\DailyReportPdfController::class, 'show'])
-            ->name('daily-reports.pdf.show');
+        ->name('daily-reports.pdf.show');
+
+    Route::get('/wage-tables', [WageTableController::class, 'index'])
+        ->name('wage-tables.index');
+
+    Route::get('/wage-tables/create', [WageTableController::class, 'create'])
+        ->name('wage-tables.create');
+
+    Route::post('/wage-tables', [WageTableController::class, 'store'])
+        ->name('wage-tables.store');
+    Route::get('/wage-tables/{wageTable}/edit', [WageTableController::class, 'edit'])
+        ->name('wage-tables.edit');
+
+    Route::put('/wage-tables/{wageTable}', [WageTableController::class, 'update'])
+        ->name('wage-tables.update');
+
+    Route::delete('/wage-tables/{wageTable}', [WageTableController::class, 'destroy'])
+    ->name('wage-tables.destroy');
 
  
 });

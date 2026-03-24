@@ -35,7 +35,7 @@ const handleDelete = (id: number, name: string) => {
 export default function Index({ wageTables }: Props) {
 
     const flash = usePage<any>().props.flash
-    
+                    
   return (
     <AuthenticatedLayout
       header={<h2 className="text-xl font-semibold leading-tight text-gray-800">賃金テーブル管理</h2>}

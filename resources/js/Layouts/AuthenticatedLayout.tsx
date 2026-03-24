@@ -51,6 +51,11 @@
                             href: route('admin.wage-tables.index'),
                             active: route().current('admin.wage-tables.*'),
                         },
+                        {
+                            label: 'アルバイト給与確認',
+                            href: route('admin.payrolls.part-time.index'),
+                            active: route().current('admin.payrolls.part-time.*'),
+                        },
                     ],
                 },
                 {

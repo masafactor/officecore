@@ -10,12 +10,14 @@ use Inertia\Inertia;
 use App\Http\Controllers\AttendanceCorrectionController;
 use App\Http\Controllers\Admin\AttendanceCorrectionController as AdminAttendanceCorrectionController;
 use App\Http\Controllers\Admin\AttendanceController as AdminAttendanceController;
+use App\Http\Controllers\Admin\PartTimePayrollController;
 use App\Http\Controllers\Admin\WageTableController;
 use App\Http\Controllers\AttendanceHistoryController;
 use App\Http\Controllers\DailyReportController;
 use App\Http\Controllers\AttendanceClosingController;
 use App\Http\Controllers\AttendancePdfController;
 use App\Http\Controllers\DailyReportPdfController;
+use App\Http\Controllers\DashboardController;
 
 Route::get('/', function () {
     return Inertia::render('Welcome', [
@@ -27,97 +29,101 @@ Route::get('/', function () {
 });
 
 
-Route::get('/dashboard', function () {
-    $user = request()->user();
-    $today = now()->toDateString();
+// Route::get('/dashboard', function () {
+//     $user = request()->user();
+//     $today = now()->toDateString();
 
-    $attendance = Attendance::where('user_id', $user->id)
-        ->where('work_date', $today)
-        ->first();
+//     $attendance = Attendance::where('user_id', $user->id)
+//         ->where('work_date', $today)
+//         ->first();
 
-    $workRule = WorkRule::query()
-        ->whereHas('userWorkRules', function ($q) use ($user, $today) {
-            $q->where('user_id', $user->id)
-              ->where('start_date', '<=', $today)
-              ->where(function ($q2) use ($today) {
-                  $q2->whereNull('end_date')->orWhere('end_date', '>=', $today);
-              });
-        })
-        ->first();
+//     $workRule = WorkRule::query()
+//         ->whereHas('userWorkRules', function ($q) use ($user, $today) {
+//             $q->where('user_id', $user->id)
+//               ->where('start_date', '<=', $today)
+//               ->where(function ($q2) use ($today) {
+//                   $q2->whereNull('end_date')->orWhere('end_date', '>=', $today);
+//               });
+//         })
+//         ->first();
 
-    if (!$workRule) {
-        $workRule = WorkRule::where('name', '通常勤務')->first();
-    }
+//     if (!$workRule) {
+//         $workRule = WorkRule::where('name', '通常勤務')->first();
+//     }
 
-    $missingClockOutDates = Attendance::query()
-    ->where('user_id', $user->id)
-    ->whereNotNull('clock_in')
-    ->whereNull('clock_out')
-    ->where('work_date', '<', $today) // ← 当日除外
-    ->orderByDesc('work_date')
-    ->limit(10)
-    ->pluck('work_date')
-    ->map(fn ($d) => $d->toDateString());
-
-
-    // 通常の実働（退勤済みの日だけ取れる）
-    $workedMinutes = ($attendance && $workRule) ? $attendance->workedMinutesForRule($workRule) : null;
-
-    // 残業中判定：未退勤なら now() を仮の退勤として計算
-    $isOvertimeNow = false;
-
-    if ($attendance && $workRule && $attendance->clock_in && !$attendance->clock_out) {
-        $date = $attendance->work_date->toDateString();
-
-        // 所定終了時刻（work_end）
-        $schedEnd = \Carbon\Carbon::parse("{$date} {$workRule->work_end}");
-
-        // 日跨ぎ勤務（例: 22:00-05:00）なら翌日にする
-        $schedStart = \Carbon\Carbon::parse("{$date} {$workRule->work_start}");
-        if ($schedEnd->lte($schedStart)) {
-            $schedEnd->addDay();
-        }
-
-        $isOvertimeNow = now()->gt($schedEnd);
-    }
+//     $missingClockOutDates = Attendance::query()
+//     ->where('user_id', $user->id)
+//     ->whereNotNull('clock_in')
+//     ->whereNull('clock_out')
+//     ->where('work_date', '<', $today) // ← 当日除外
+//     ->orderByDesc('work_date')
+//     ->limit(10)
+//     ->pluck('work_date')
+//     ->map(fn ($d) => $d->toDateString());
 
 
+//     // 通常の実働（退勤済みの日だけ取れる）
+//     $workedMinutes = ($attendance && $workRule) ? $attendance->totalMinutesForRule($workRule) : null;
 
-    $openAttendance = Attendance::query()
-    ->where('user_id', $user->id)
-    ->whereNotNull('clock_in')
-    ->whereNull('clock_out')
-    ->orderByDesc('work_date')
-    ->first();
+//     // 残業中判定：未退勤なら now() を仮の退勤として計算
+//     $isOvertimeNow = false;
+
+//     if ($attendance && $workRule && $attendance->clock_in && !$attendance->clock_out) {
+//         $date = $attendance->work_date->toDateString();
+
+//         // 所定終了時刻（work_end）
+//         $schedEnd = \Carbon\Carbon::parse("{$date} {$workRule->work_end}");
+
+//         // 日跨ぎ勤務（例: 22:00-05:00）なら翌日にする
+//         $schedStart = \Carbon\Carbon::parse("{$date} {$workRule->work_start}");
+//         if ($schedEnd->lte($schedStart)) {
+//             $schedEnd->addDay();
+//         }
+
+//         $isOvertimeNow = now()->gt($schedEnd);
+//     }
 
 
-    return Inertia::render('Dashboard', [
-        'today' => $today,
-        'workedMinutes' => $workedMinutes,
-        // 'workedMinutesNow' => $workedMinutesNow,
-        'missingClockOutDates' => $missingClockOutDates,
-        'attendance' => $attendance ? [
-            'id' => $attendance->id,
-            'work_date' => optional($attendance->work_date)->toDateString(),
 
-            // ここを「必ず HH:MM」に寄せる
-            'clock_in'  => $attendance->clock_in ? \Carbon\Carbon::parse($attendance->clock_in)->format('H:i') : null,
-            'clock_out' => $attendance->clock_out ? \Carbon\Carbon::parse($attendance->clock_out)->format('H:i') : null,
+//     $openAttendance = Attendance::query()
+//     ->where('user_id', $user->id)
+//     ->whereNotNull('clock_in')
+//     ->whereNull('clock_out')
+//     ->orderByDesc('work_date')
+//     ->first();
 
-            'note' => $attendance->note,
-            'overtime_now' => $isOvertimeNow,
-        ] : null,
 
-         // ★追加（退勤ボタンの対象）
-        'openAttendance' => $openAttendance ? [
-            'id' => $openAttendance->id,
-            'work_date' => optional($openAttendance->work_date)->toDateString(),
-            'clock_in'  => $openAttendance->clock_in ? \Carbon\Carbon::parse($openAttendance->clock_in)->format('H:i') : null,
-            'clock_out' => null,
-        ] : null,
+//     return Inertia::render('Dashboard', [
+//         'today' => $today,
+//         'workedMinutes' => $workedMinutes,
+//         // 'workedMinutesNow' => $workedMinutesNow,
+//         'missingClockOutDates' => $missingClockOutDates,
+//         'attendance' => $attendance ? [
+//             'id' => $attendance->id,
+//             'work_date' => optional($attendance->work_date)->toDateString(),
 
-    ]);
-})->middleware(['auth', 'verified'])->name('dashboard');
+//             // ここを「必ず HH:MM」に寄せる
+//             'clock_in'  => $attendance->clock_in ? \Carbon\Carbon::parse($attendance->clock_in)->format('H:i') : null,
+//             'clock_out' => $attendance->clock_out ? \Carbon\Carbon::parse($attendance->clock_out)->format('H:i') : null,
+
+//             'note' => $attendance->note,
+//             'overtime_now' => $isOvertimeNow,
+//         ] : null,
+
+//          // ★追加（退勤ボタンの対象）
+//         'openAttendance' => $openAttendance ? [
+//             'id' => $openAttendance->id,
+//             'work_date' => optional($openAttendance->work_date)->toDateString(),
+//             'clock_in'  => $openAttendance->clock_in ? \Carbon\Carbon::parse($openAttendance->clock_in)->format('H:i') : null,
+//             'clock_out' => null,
+//         ] : null,
+
+//     ]);
+// })->middleware(['auth', 'verified'])->name('dashboard');
+
+Route::get('/dashboard', [DashboardController::class, 'index'])
+    ->middleware(['auth', 'verified'])
+    ->name('dashboard');
 
 
 
@@ -325,6 +331,9 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
 
     Route::delete('/wage-tables/{wageTable}', [WageTableController::class, 'destroy'])
     ->name('wage-tables.destroy');
+
+    Route::get('/payrolls/part-time', [PartTimePayrollController::class, 'index'])
+    ->name('payrolls.part-time.index');
 
  
 });

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Attendance;
 use App\Models\User;
+use App\Models\WorkRule;
 use Carbon\Carbon;
 use Inertia\Inertia;
 
@@ -18,13 +19,20 @@ class PartTimePayrollController extends Controller
         $end = (clone $start)->endOfMonth();
 
         $users = User::query()
-            ->whereHas('userEmployments.employmentType', function ($query) {
-                $query->where('code', 'part_time');
+            ->whereHas('userEmployments', function ($query) use ($end) {
+                $query->where('start_date', '<=', $end->toDateString())
+                    ->where(function ($q) use ($end) {
+                        $q->whereNull('end_date')
+                            ->orWhere('end_date', '>=', $end->toDateString());
+                    })
+                    ->whereHas('employmentType', function ($q) {
+                        $q->where('code', 'part_time');
+                    });
             })
             ->with([
                 'userEmployments' => function ($query) use ($end) {
                     $query->with([
-                        'employmentType:id,code,name',
+                        'employmentType:id,code,name,overtime_policy',
                         'wageTable:id,employment_type_id,code,name,hourly_wage',
                     ])
                     ->where('start_date', '<=', $end->toDateString())
@@ -43,6 +51,7 @@ class PartTimePayrollController extends Controller
 
             $hourlyWage = $employment?->wageTable?->hourly_wage ?? 0;
             $wageTableName = $employment?->wageTable?->name;
+            $policy = $employment?->employmentType?->overtime_policy ?? 'scheduled_over';
 
             $attendances = Attendance::query()
                 ->where('user_id', $user->id)
@@ -51,30 +60,42 @@ class PartTimePayrollController extends Controller
 
             $workedMinutes = 0;
             $overtimeMinutes = 0;
-            $lateNightMinutes = 0;
+            $nightMinutes = 0;
 
             foreach ($attendances as $attendance) {
-                // ここは既存メソッド名に合わせて必要なら調整
-                $workedMinutes += method_exists($attendance, 'workedMinutes')
-                    ? (int) $attendance->workedMinutes()
-                    : 0;
+                $date = $attendance->work_date->toDateString();
 
-                $overtimeMinutes += method_exists($attendance, 'overtimeMinutes')
-                    ? (int) $attendance->overtimeMinutes()
-                    : 0;
+                $workRule = WorkRule::query()
+                    ->whereHas('userWorkRules', function ($q) use ($user, $date) {
+                        $q->where('user_id', $user->id)
+                            ->where('start_date', '<=', $date)
+                            ->where(function ($q2) use ($date) {
+                                $q2->whereNull('end_date')
+                                    ->orWhere('end_date', '>=', $date);
+                            });
+                    })
+                    ->first();
 
-                $lateNightMinutes += method_exists($attendance, 'lateNightMinutes')
-                    ? (int) $attendance->lateNightMinutes()
-                    : 0;
+                if (! $workRule) {
+                    $workRule = WorkRule::where('name', '通常勤務')->first();
+                }
+
+                if (! $workRule) {
+                    continue;
+                }
+
+                $workedMinutes += $attendance->totalMinutesForRule($workRule) ?? 0;
+                $overtimeMinutes += $attendance->overtimeMinutesWithPolicy($workRule, $policy) ?? 0;
+                $nightMinutes += $attendance->nightMinutesForRule($workRule) ?? 0;
             }
 
             $workedHours = round($workedMinutes / 60, 2);
             $overtimeHours = round($overtimeMinutes / 60, 2);
-            $lateNightHours = round($lateNightMinutes / 60, 2);
+            $lateNightHours = round($nightMinutes / 60, 2);
 
             $baseAmount = floor(($workedMinutes / 60) * $hourlyWage);
             $overtimePremium = floor(($overtimeMinutes / 60) * $hourlyWage * 0.25);
-            $lateNightPremium = floor(($lateNightMinutes / 60) * $hourlyWage * 0.25);
+            $lateNightPremium = floor(($nightMinutes / 60) * $hourlyWage * 0.25);
 
             $estimatedAmount = $baseAmount + $overtimePremium + $lateNightPremium;
 

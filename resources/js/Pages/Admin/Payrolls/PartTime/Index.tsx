@@ -15,12 +15,23 @@ type PayrollRow = {
   estimated_amount: number
 }
 
+type Summary = {
+  user_count: number
+  worked_hours_total: number
+  overtime_hours_total: number
+  late_night_hours_total: number
+  base_amount_total: number
+  estimated_amount_total: number
+}
+
 type Props = {
   month: string
   rows: PayrollRow[]
+  summary: Summary
 }
 
-export default function Index({ month, rows }: Props) {
+
+export default function Index({ month, rows,summary }: Props) {
   const changeMonth = (value: string) => {
     router.get(
       route('admin.payrolls.part-time.index'),
@@ -28,6 +39,20 @@ export default function Index({ month, rows }: Props) {
       { preserveState: true, replace: true }
     )
   }
+
+  const buildCsvUrl = () => {
+  const params = new URLSearchParams()
+
+  if (month) {
+    params.append('month', month)
+  }
+
+  const query = params.toString()
+
+  return query
+    ? `${route('admin.payrolls.part-time.csv')}?${query}`
+    : route('admin.payrolls.part-time.csv')
+}
 
   return (
     <AuthenticatedLayout
@@ -46,7 +71,9 @@ export default function Index({ month, rows }: Props) {
                     賃金テーブルと勤怠から支給見込額を確認します。
                   </p>
                 </div>
+               <div className="flex items-end gap-3">
 
+               
                 <div>
                   <label className="mb-1 block text-sm font-medium text-gray-700">対象月</label>
                   <input
@@ -55,6 +82,60 @@ export default function Index({ month, rows }: Props) {
                     onChange={(e) => changeMonth(e.target.value)}
                     className="h-11 rounded-lg border border-gray-300 px-3 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
                   />
+                </div>
+                  <a
+                    href={buildCsvUrl()}
+                    className="inline-flex h-11 items-center justify-center rounded-lg bg-emerald-600 px-4 text-sm font-semibold text-white hover:bg-emerald-700"
+                  >
+                    CSV出力
+                  </a>
+                </div>
+                
+              </div>
+              <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-3 xl:grid-cols-6">
+                <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+                  <div className="text-xs font-medium text-gray-500">対象人数</div>
+                  <div className="mt-2 text-2xl font-bold text-gray-900">{summary.user_count}名</div>
+                </div>
+
+                <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+                  <div className="text-xs font-medium text-gray-500">総労働時間合計</div>
+                  <div className="mt-2 text-2xl font-bold text-gray-900">
+                    {summary.worked_hours_total}
+                    <span className="ml-1 text-sm font-medium text-gray-500">時間</span>
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+                  <div className="text-xs font-medium text-gray-500">残業時間合計</div>
+                  <div className="mt-2 text-2xl font-bold text-gray-900">
+                    {summary.overtime_hours_total}
+                    <span className="ml-1 text-sm font-medium text-gray-500">時間</span>
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+                  <div className="text-xs font-medium text-gray-500">深夜時間合計</div>
+                  <div className="mt-2 text-2xl font-bold text-gray-900">
+                    {summary.late_night_hours_total}
+                    <span className="ml-1 text-sm font-medium text-gray-500">時間</span>
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+                  <div className="text-xs font-medium text-gray-500">基本給合計</div>
+                  <div className="mt-2 text-2xl font-bold text-gray-900">
+                    {summary.base_amount_total.toLocaleString()}
+                    <span className="ml-1 text-sm font-medium text-gray-500">円</span>
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-blue-200 bg-blue-50 p-4">
+                  <div className="text-xs font-medium text-blue-600">支給見込額合計</div>
+                  <div className="mt-2 text-2xl font-bold text-blue-700">
+                    {summary.estimated_amount_total.toLocaleString()}
+                    <span className="ml-1 text-sm font-medium text-blue-500">円</span>
+                  </div>
                 </div>
               </div>
 

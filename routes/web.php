@@ -335,6 +335,9 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     Route::get('/payrolls/part-time', [PartTimePayrollController::class, 'index'])
     ->name('payrolls.part-time.index');
 
+    Route::get('/payrolls/part-time/csv', [PartTimePayrollController::class, 'csv'])
+    ->name('payrolls.part-time.csv');
+
  
 });
 

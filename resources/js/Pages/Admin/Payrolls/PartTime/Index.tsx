@@ -1,5 +1,6 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout'
 import { Head, router } from '@inertiajs/react'
+import { useState } from 'react'
 
 type PayrollRow = {
   user_id: number
@@ -24,28 +25,66 @@ type Summary = {
   estimated_amount_total: number
 }
 
+type WageTableOption = {
+  id: number
+  name: string
+  hourly_wage: number
+}
+
+
 type Props = {
   month: string
   rows: PayrollRow[]
   summary: Summary
+  wageTables: WageTableOption[]
+  filters: {
+    wage_table_id: string
+  }
 }
 
 
-export default function Index({ month, rows,summary }: Props) {
-  const changeMonth = (value: string) => {
-    router.get(
-      route('admin.payrolls.part-time.index'),
-      { month: value },
-      { preserveState: true, replace: true }
-    )
-  }
+export default function Index({ month, rows,summary,wageTables, filters  }: Props) {
 
-  const buildCsvUrl = () => {
+
+const [wageTableId, setWageTableId] = useState(filters.wage_table_id ?? '')
+
+const changeMonth = (value: string) => {
+  router.get(
+    route('admin.payrolls.part-time.index'),
+    {
+      month: value,
+      wage_table_id: wageTableId || undefined,
+    },
+    { preserveState: true, replace: true }
+  )
+}
+
+const applyFilter = () => {
+  router.get(
+    route('admin.payrolls.part-time.index'),
+    {
+      month,
+      wage_table_id: wageTableId || undefined,
+    },
+    { preserveState: true, replace: true }
+  )
+}
+
+const resetFilter = () => {
+  setWageTableId('')
+
+  router.get(
+    route('admin.payrolls.part-time.index'),
+    { month },
+    { preserveState: true, replace: true }
+  )
+}
+
+const buildCsvUrl = () => {
   const params = new URLSearchParams()
 
-  if (month) {
-    params.append('month', month)
-  }
+  if (month) params.append('month', month)
+  if (wageTableId) params.append('wage_table_id', wageTableId)
 
   const query = params.toString()
 
@@ -53,7 +92,6 @@ export default function Index({ month, rows,summary }: Props) {
     ? `${route('admin.payrolls.part-time.csv')}?${query}`
     : route('admin.payrolls.part-time.csv')
 }
-
   return (
     <AuthenticatedLayout
       header={<h2 className="text-xl font-semibold leading-tight text-gray-800">アルバイト給与確認</h2>}
@@ -73,8 +111,9 @@ export default function Index({ month, rows,summary }: Props) {
                 </div>
                <div className="flex items-end gap-3">
 
+                
                
-                <div>
+                
                   <label className="mb-1 block text-sm font-medium text-gray-700">対象月</label>
                   <input
                     type="month"
@@ -82,7 +121,40 @@ export default function Index({ month, rows,summary }: Props) {
                     onChange={(e) => changeMonth(e.target.value)}
                     className="h-11 rounded-lg border border-gray-300 px-3 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
                   />
-                </div>
+                
+                
+  
+                  <label className="mb-1 block text-sm font-medium text-gray-700">賃金テーブル</label>
+                  <select
+                    value={wageTableId}
+                    onChange={(e) => setWageTableId(e.target.value)}
+                    className="h-11 rounded-lg border border-gray-300 px-3 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                  >
+                    <option value="">すべて</option>
+                    {wageTables.map((table) => (
+                      <option key={table.id} value={String(table.id)}>
+                        {table.name}（{table.hourly_wage}円）
+                      </option>
+                    ))}
+                  </select>
+
+
+                  <button
+                    type="button"
+                    onClick={applyFilter}
+                    className="inline-flex h-11 items-center justify-center rounded-lg bg-blue-600 px-4 text-sm font-semibold text-white hover:bg-blue-700"
+                  >
+                    絞り込み
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={resetFilter}
+                    className="inline-flex h-11 items-center justify-center rounded-lg bg-gray-200 px-4 text-sm font-semibold text-gray-800 hover:bg-gray-300"
+                  >
+                    リセット
+                  </button>
+
                   <a
                     href={buildCsvUrl()}
                     className="inline-flex h-11 items-center justify-center rounded-lg bg-emerald-600 px-4 text-sm font-semibold text-white hover:bg-emerald-700"

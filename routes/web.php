@@ -11,6 +11,7 @@ use App\Http\Controllers\AttendanceCorrectionController;
 use App\Http\Controllers\Admin\AttendanceCorrectionController as AdminAttendanceCorrectionController;
 use App\Http\Controllers\Admin\AttendanceController as AdminAttendanceController;
 use App\Http\Controllers\Admin\PartTimePayrollController;
+use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\WageTableController;
 use App\Http\Controllers\AttendanceHistoryController;
 use App\Http\Controllers\DailyReportController;
@@ -337,6 +338,9 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
 
     Route::get('/payrolls/part-time/csv', [PartTimePayrollController::class, 'csv'])
     ->name('payrolls.part-time.csv');
+
+    Route::post('/users/{user}/salary', [UserController::class, 'updateSalary'])
+    ->name('users.update-salary');
 
  
 });

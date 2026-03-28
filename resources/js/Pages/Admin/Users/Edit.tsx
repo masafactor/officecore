@@ -1,6 +1,26 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout'
 import { Head, useForm, usePage, Link } from '@inertiajs/react'
 
+
+type CurrentSalary = {
+  id: number
+  base_salary: number
+  start_date: string | null
+  end_date: string | null
+  reason: string | null
+  note: string | null
+} | null
+
+type SalaryHistory = {
+  id: number
+  base_salary: number
+  start_date: string | null
+  end_date: string | null
+  reason: string | null
+  note: string | null
+}
+
+
 type Props = {
   user: { id: number; name: string; email: string; role: string }
 
@@ -44,7 +64,14 @@ type Props = {
     start_date: string
     end_date: string | null
   }[]
+
+  currentSalary: CurrentSalary
+  salaryHistories: SalaryHistory[]
 }
+
+
+
+
 
 export default function Edit({
   user,
@@ -55,6 +82,8 @@ export default function Edit({
   currentEmployment,
   employmentHistories,
   wageTables,
+  currentSalary,
+  salaryHistories,
 }: Props) {
   const flash = usePage<any>().props.flash
 
@@ -88,6 +117,31 @@ export default function Edit({
   const filteredWageTables = wageTables.filter(
     (w) => String(w.employment_type_id) === employmentForm.data.employment_type_id
   )
+
+  const salaryForm = useForm({
+  base_salary: currentSalary?.base_salary ? String(currentSalary.base_salary) : '',
+  start_date: new Date().toISOString().slice(0, 10),
+  reason: '',
+  note: '',
+  })
+
+  const submitSalary = (e: React.FormEvent) => {
+    e.preventDefault()
+
+    salaryForm.post(route('admin.users.update-salary', user.id), {
+      preserveScroll: true,
+    })
+  }
+
+  const selectedEmploymentType = employmentTypes.find(
+  (type) => String(type.id) === employmentForm.data.employment_type_id
+  )
+
+  const isFullTime =
+  selectedEmploymentType?.code === 'regular' ||
+  selectedEmploymentType?.code === 'full_time'
+
+
 
   return (
     <AuthenticatedLayout header={<h2 className="text-xl font-semibold leading-tight text-gray-800">ユーザー編集</h2>}>
@@ -335,7 +389,92 @@ export default function Edit({
               <div className="text-xs text-gray-500">
                 ※「開始日以降の履歴があると弾く」方針は事故防止のため。将来は “途中挿入” を実装するならここを拡張。
               </div>
+
+              {isFullTime && (
+                  <section className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+                    <h3 className="mb-4 text-base font-semibold text-gray-800">固定給設定</h3>
+
+                    <form onSubmit={submitSalary} className="space-y-4">
+                      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                        <div>
+                          <label className="mb-1 block text-sm font-medium text-gray-700">固定給</label>
+                          <input
+                            type="number"
+                            min="0"
+                            value={salaryForm.data.base_salary}
+                            onChange={(e) => salaryForm.setData('base_salary', e.target.value)}
+                            className="h-11 w-full rounded-lg border border-gray-300 px-3 text-sm"
+                          />
+                          {salaryForm.errors.base_salary && (
+                            <div className="mt-1 text-xs text-red-600">{salaryForm.errors.base_salary}</div>
+                          )}
+                        </div>
+
+                        <div>
+                          <label className="mb-1 block text-sm font-medium text-gray-700">適用開始日</label>
+                          <input
+                            type="date"
+                            value={salaryForm.data.start_date}
+                            onChange={(e) => salaryForm.setData('start_date', e.target.value)}
+                            className="h-11 w-full rounded-lg border border-gray-300 px-3 text-sm"
+                          />
+                          {salaryForm.errors.start_date && (
+                            <div className="mt-1 text-xs text-red-600">{salaryForm.errors.start_date}</div>
+                          )}
+                        </div>
+
+                        <div>
+                          <label className="mb-1 block text-sm font-medium text-gray-700">理由</label>
+                          <input
+                            type="text"
+                            value={salaryForm.data.reason}
+                            onChange={(e) => salaryForm.setData('reason', e.target.value)}
+                            placeholder="例: 初期設定 / 定期昇給"
+                            className="h-11 w-full rounded-lg border border-gray-300 px-3 text-sm"
+                          />
+                          {salaryForm.errors.reason && (
+                            <div className="mt-1 text-xs text-red-600">{salaryForm.errors.reason}</div>
+                          )}
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="mb-1 block text-sm font-medium text-gray-700">メモ</label>
+                        <textarea
+                          value={salaryForm.data.note}
+                          onChange={(e) => salaryForm.setData('note', e.target.value)}
+                          rows={3}
+                          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                        />
+                        {salaryForm.errors.note && (
+                          <div className="mt-1 text-xs text-red-600">{salaryForm.errors.note}</div>
+                        )}
+                      </div>
+
+                      {currentSalary && (
+                        <div className="rounded-lg border border-gray-200 bg-white p-4 text-sm text-gray-700">
+                          <div className="font-semibold text-gray-800">現在の固定給</div>
+                          <div className="mt-2 space-y-1">
+                            <div>固定給: {currentSalary.base_salary.toLocaleString()}円</div>
+                            <div>開始日: {currentSalary.start_date ?? '—'}</div>
+                            <div>終了日: {currentSalary.end_date ?? '—'}</div>
+                            <div>理由: {currentSalary.reason ?? '—'}</div>
+                          </div>
+                        </div>
+                      )}
+
+                      <button
+                        type="submit"
+                        disabled={salaryForm.processing}
+                        className="inline-flex h-11 items-center justify-center rounded-lg bg-blue-600 px-5 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+                      >
+                        固定給を設定
+                      </button>
+                    </form>
+                  </section>
+                )}
             </div>
+    
           </div>
         </div>
       </div>

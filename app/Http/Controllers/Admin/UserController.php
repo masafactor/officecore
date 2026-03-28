@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\EmployeeSalaryHistory;
 use App\Models\User;
 use App\Models\WorkRule;
 use Carbon\Carbon;
@@ -125,7 +126,31 @@ public function edit(User $user)
         ] : null,
         'employmentHistories' => $employmentHistories->values(),
     ]);
-}
+
+    $today = Carbon::today()->toDateString();
+
+    $currentSalary = EmployeeSalaryHistory::query()
+        ->where('user_id', $user->id)
+        ->where('start_date', '<=', $today)
+        ->where(function ($query) use ($today) {
+            $query->whereNull('end_date')
+                ->orWhere('end_date', '>=', $today);
+        })
+        ->orderByDesc('start_date')
+        ->first();
+
+    $salaryHistories = $user->employeeSalaryHistories()
+        ->orderByDesc('start_date')
+        ->get()
+        ->map(fn ($h) => [
+            'id' => $h->id,
+            'base_salary' => $h->base_salary,
+            'start_date' => $h->start_date?->toDateString(),
+            'end_date' => $h->end_date?->toDateString(),
+            'reason' => $h->reason,
+            'note' => $h->note,
+        ]);
+    }
 
     public function updateWorkRule(Request $request, User $user)
     {
@@ -248,5 +273,48 @@ public function edit(User $user)
         ]);
 
         return back()->with('success', '雇用形態を更新しました。');
+    }
+
+
+    public function updateSalary(Request $request, User $user)
+    {
+        $validated = $request->validate([
+            'base_salary' => ['required', 'integer', 'min:0'],
+            'start_date' => ['required', 'date'],
+            'reason' => ['nullable', 'string', 'max:255'],
+            'note' => ['nullable', 'string'],
+        ]);
+
+        $start = Carbon::parse($validated['start_date'])->startOfDay();
+
+        $conflict = $user->employeeSalaryHistories()
+            ->where('start_date', '>=', $start->toDateString())
+            ->exists();
+
+        if ($conflict) {
+            return back()->with('error', 'その開始日以降に既存の給与履歴があります。開始日を見直してください。');
+        }
+
+        $prev = $user->employeeSalaryHistories()
+            ->where('start_date', '<=', $start->toDateString())
+            ->orderByDesc('start_date')
+            ->first();
+
+        if ($prev) {
+            if ($prev->end_date === null || Carbon::parse($prev->end_date)->gte($start)) {
+                $prev->end_date = $start->copy()->subDay()->toDateString();
+                $prev->save();
+            }
+        }
+
+        $user->employeeSalaryHistories()->create([
+            'base_salary' => (int) $validated['base_salary'],
+            'start_date' => $start->toDateString(),
+            'end_date' => null,
+            'reason' => $validated['reason'] ?? null,
+            'note' => $validated['note'] ?? null,
+        ]);
+
+        return back()->with('success', '固定給を更新しました。');
     }
 }

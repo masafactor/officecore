@@ -109,4 +109,9 @@ class User extends Authenticatable
 
         return $hist?->employmentType;
     }
+
+    public function employeeSalaryHistories()
+    {
+        return $this->hasMany(EmployeeSalaryHistory::class);
+    }
 }

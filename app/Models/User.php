@@ -114,4 +114,6 @@ class User extends Authenticatable
     {
         return $this->hasMany(EmployeeSalaryHistory::class);
     }
+
+    
 }

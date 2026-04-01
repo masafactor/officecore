@@ -10,6 +10,8 @@ use Inertia\Inertia;
 use App\Http\Controllers\AttendanceCorrectionController;
 use App\Http\Controllers\Admin\AttendanceCorrectionController as AdminAttendanceCorrectionController;
 use App\Http\Controllers\Admin\AttendanceController as AdminAttendanceController;
+use App\Http\Controllers\Admin\CompanyCalendarController;
+use App\Http\Controllers\Admin\EmployeePayrollController;
 use App\Http\Controllers\Admin\PartTimePayrollController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\WageTableController;
@@ -342,6 +344,29 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     Route::post('/users/{user}/salary', [UserController::class, 'updateSalary'])
     ->name('users.update-salary');
 
+    Route::get('/payrolls/employees', [EmployeePayrollController::class, 'index'])
+    ->name('payrolls.employees.index');
+
+    Route::get('/payrolls/employees/csv', [EmployeePayrollController::class, 'csv'])
+    ->name('payrolls.employees.csv');
+
+    Route::get('/company-calendar', [CompanyCalendarController::class, 'index'])
+    ->name('company-calendar.index');
+
+    Route::post('/company-calendar', [CompanyCalendarController::class, 'store'])
+        ->name('company-calendar.store');
+
+    Route::patch('/company-calendar/{companyCalendarDay}', [CompanyCalendarController::class, 'update'])
+        ->name('company-calendar.update');
+
+    Route::post('/company-calendar/generate-year', [CompanyCalendarController::class, 'generateYear'])
+        ->name('company-calendar.generate-year');
+
+    Route::post('/company-calendar/bulk-update', [CompanyCalendarController::class, 'bulkUpdate'])
+    ->name('company-calendar.bulk-update');
+
+    Route::post('/company-calendar/update-weekdays', [CompanyCalendarController::class, 'updateWeekdays'])
+    ->name('company-calendar.update-weekdays');
  
 });
 

@@ -56,6 +56,16 @@
                             href: route('admin.payrolls.part-time.index'),
                             active: route().current('admin.payrolls.part-time.*'),
                         },
+                        {
+                            label: '正社員給与確認',
+                            href: route('admin.payrolls.employees.index'),
+                            active: route().current('admin.payrolls.employees.*'),
+                         },
+                         {
+                            label: '会社カレンダー管理',
+                            href: route('admin.company-calendar.index'),
+                            active: route().current('admin.company-calendar.*'),
+                        },
                     ],
                 },
                 {

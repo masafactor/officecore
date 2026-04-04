@@ -157,9 +157,11 @@ class EmployeePayrollController extends Controller
             $scheduledHours = round($scheduledMinutes / 60, 2);
             $overtimeHours = round($overtimeMinutes / 60, 2);
 
-            $hourlyRate = $scheduledMinutes > 0
-                ? floor($baseSalary / ($scheduledMinutes / 60))
-                : 0;
+            $hourlyRate = $this->calculateAverageBaseHourlyRate(
+                $user,
+                $start->year,
+                (int) $baseSalary
+            );
 
             $overtimeAmount = (int) floor(($overtimeMinutes / 60) * $hourlyRate * 1.25);
             $estimatedAmount = $baseSalary + $overtimeAmount;
@@ -188,5 +190,68 @@ class EmployeePayrollController extends Controller
         ];
 
         return [$rows, $summary];
+    }
+
+    private function calculateAverageBaseHourlyRate(User $user, int $year, int $baseSalary): int
+    {
+        if ($baseSalary <= 0) {
+            return 0;
+        }
+
+        $start = Carbon::create($year, 1, 1)->startOfDay();
+        $end = Carbon::create($year, 12, 31)->endOfDay();
+
+        $totalScheduledMinutes = 0;
+
+        $calendarDays = \App\Models\CompanyCalendarDay::query()
+            ->whereBetween('calendar_date', [$start->toDateString(), $end->toDateString()])
+            ->orderBy('calendar_date')
+            ->get();
+
+        foreach ($calendarDays as $calendarDay) {
+            $date = $calendarDay->calendar_date->toDateString();
+
+            $workRule = WorkRule::query()
+                ->whereHas('userWorkRules', function ($q) use ($user, $date) {
+                    $q->where('user_id', $user->id)
+                        ->where('start_date', '<=', $date)
+                        ->where(function ($q2) use ($date) {
+                            $q2->whereNull('end_date')
+                                ->orWhere('end_date', '>=', $date);
+                        });
+                })
+                ->first();
+
+            if (! $workRule) {
+                $workRule = WorkRule::where('name', '通常勤務')->first();
+            }
+
+            if (! $workRule) {
+                continue;
+            }
+
+            // 会社カレンダー上の所定分数を優先
+            if ($calendarDay->day_type === 'workday') {
+                $totalScheduledMinutes += (int) $calendarDay->scheduled_minutes;
+                continue;
+            }
+
+            if ($calendarDay->day_type === 'shortday') {
+                $totalScheduledMinutes += (int) $calendarDay->scheduled_minutes;
+                continue;
+            }
+        }
+
+        if ($totalScheduledMinutes <= 0) {
+            return 0;
+        }
+
+        $averageMonthlyHours = ($totalScheduledMinutes / 60) / 12;
+
+        if ($averageMonthlyHours <= 0) {
+            return 0;
+        }
+
+        return (int) floor($baseSalary / $averageMonthlyHours);
     }
 }

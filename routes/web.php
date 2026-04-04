@@ -367,6 +367,13 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
 
     Route::post('/company-calendar/update-weekdays', [CompanyCalendarController::class, 'updateWeekdays'])
     ->name('company-calendar.update-weekdays');
+
+    Route::post('/company-calendar/generate-holidays', [CompanyCalendarController::class, 'generateHolidays'])
+    ->name('company-calendar.generate-holidays');
+
+    Route::post('/company-calendar/generate-substitute-holidays', [CompanyCalendarController::class, 'generateSubstituteHolidays'])
+    ->name('company-calendar.generate-substitute-holidays');
+
  
 });
 

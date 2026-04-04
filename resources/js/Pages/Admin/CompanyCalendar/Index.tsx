@@ -93,7 +93,29 @@ const toggleWeekday = (value: string) => {
   }
 }
 
+const holidayGenerateForm = useForm({
+  year: String(year),
+})
 
+const submitGenerateHolidays = (e: React.FormEvent) => {
+  e.preventDefault()
+
+  holidayGenerateForm.post(route('admin.company-calendar.generate-holidays'), {
+    preserveScroll: true,
+  })
+}
+
+const substituteHolidayForm = useForm({
+  year: String(year),
+})
+
+const submitGenerateSubstituteHolidays = (e: React.FormEvent) => {
+  e.preventDefault()
+
+  substituteHolidayForm.post(route('admin.company-calendar.generate-substitute-holidays'), {
+    preserveScroll: true,
+  })
+}
 
   return (
     <AuthenticatedLayout
@@ -417,6 +439,70 @@ const toggleWeekday = (value: string) => {
                       className="rounded-lg bg-gray-900 px-4 py-2 text-sm font-semibold text-white hover:bg-black disabled:opacity-50"
                     >
                       年間生成
+                    </button>
+                  </form>
+                </section>
+
+                <section className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+                  <h3 className="mb-4 text-base font-semibold text-gray-800">祝日自動生成</h3>
+
+                  <form onSubmit={submitGenerateHolidays} className="space-y-4">
+                    <div>
+                      <label className="mb-1 block text-sm font-medium text-gray-700">対象年</label>
+                      <input
+                        type="number"
+                        value={holidayGenerateForm.data.year}
+                        onChange={(e) => holidayGenerateForm.setData('year', e.target.value)}
+                        className="h-11 w-full rounded-lg border border-gray-300 px-3 text-sm"
+                      />
+                      {holidayGenerateForm.errors.year && (
+                        <div className="mt-1 text-xs text-red-600">{holidayGenerateForm.errors.year}</div>
+                      )}
+                    </div>
+
+                    <div className="text-sm text-gray-500">
+                      固定日祝日と第○月曜日の祝日を自動生成します。
+                      自動生成した祝日は休日になります。
+                      祝日でも勤務日とする日は、手動で勤務日に変更してください。
+                      春分の日・秋分の日・国民の休日・振替休日は別途設定してください。
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={holidayGenerateForm.processing}
+                      className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
+                    >
+                      祝日自動生成
+                    </button>
+                  </form>
+                </section>
+                <section className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+                  <h3 className="mb-4 text-base font-semibold text-gray-800">振替休日作成</h3>
+
+                  <form onSubmit={submitGenerateSubstituteHolidays} className="space-y-4">
+                    <div>
+                      <label className="mb-1 block text-sm font-medium text-gray-700">対象年</label>
+                      <input
+                        type="number"
+                        value={substituteHolidayForm.data.year}
+                        onChange={(e) => substituteHolidayForm.setData('year', e.target.value)}
+                        className="h-11 w-full rounded-lg border border-gray-300 px-3 text-sm"
+                      />
+                      {substituteHolidayForm.errors.year && (
+                        <div className="mt-1 text-xs text-red-600">{substituteHolidayForm.errors.year}</div>
+                      )}
+                    </div>
+
+                    <div className="text-sm text-gray-500">
+                      日曜日にあたる祝日に対して、次の非休日を振替休日として作成します。
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={substituteHolidayForm.processing}
+                      className="rounded-lg bg-orange-600 px-4 py-2 text-sm font-semibold text-white hover:bg-orange-700 disabled:opacity-50"
+                    >
+                      振替休日作成
                     </button>
                   </form>
                 </section>

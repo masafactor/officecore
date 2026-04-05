@@ -10,6 +10,7 @@ use Inertia\Inertia;
 use App\Http\Controllers\AttendanceCorrectionController;
 use App\Http\Controllers\Admin\AttendanceCorrectionController as AdminAttendanceCorrectionController;
 use App\Http\Controllers\Admin\AttendanceController as AdminAttendanceController;
+use App\Http\Controllers\Admin\CommuterAllowanceApprovalController;
 use App\Http\Controllers\Admin\CompanyCalendarController;
 use App\Http\Controllers\Admin\EmployeePayrollController;
 use App\Http\Controllers\Admin\PartTimePayrollController;
@@ -19,6 +20,7 @@ use App\Http\Controllers\AttendanceHistoryController;
 use App\Http\Controllers\DailyReportController;
 use App\Http\Controllers\AttendanceClosingController;
 use App\Http\Controllers\AttendancePdfController;
+use App\Http\Controllers\CommuterAllowanceController;
 use App\Http\Controllers\DailyReportPdfController;
 use App\Http\Controllers\DashboardController;
 
@@ -374,7 +376,27 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     Route::post('/company-calendar/generate-substitute-holidays', [CompanyCalendarController::class, 'generateSubstituteHolidays'])
     ->name('company-calendar.generate-substitute-holidays');
 
+    Route::get('/commuter-allowances', [CommuterAllowanceApprovalController::class, 'index'])
+        ->name('commuter-allowances.index');
+
+    Route::post('/commuter-allowances/{commuterAllowance}/approve', [CommuterAllowanceApprovalController::class, 'approve'])
+        ->name('commuter-allowances.approve');
+
+    Route::post('/commuter-allowances/{commuterAllowance}/reject', [CommuterAllowanceApprovalController::class, 'reject'])
+        ->name('commuter-allowances.reject');
+
  
+});
+
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('/commuter-allowances', [CommuterAllowanceController::class, 'index'])
+        ->name('commuter-allowances.index');
+
+    Route::get('/commuter-allowances/create', [CommuterAllowanceController::class, 'create'])
+        ->name('commuter-allowances.create');
+
+    Route::post('/commuter-allowances', [CommuterAllowanceController::class, 'store'])
+        ->name('commuter-allowances.store');
 });
 
 

@@ -66,6 +66,12 @@
                             href: route('admin.company-calendar.index'),
                             active: route().current('admin.company-calendar.*'),
                         },
+
+                        {
+                            label: '通勤定期申請管理',
+                            href: route('admin.commuter-allowances.index'),
+                            active: route().current('admin.commuter-allowances.*'),
+                        },
                     ],
                 },
                 {
@@ -135,6 +141,10 @@
 
                                             <NavLink href={route('daily-reports.index')} active={route().current('daily-reports.*')}>
                                             勤務日報
+                                            </NavLink>
+
+                                            <NavLink href={route('commuter-allowances.index')} active={route().current('commuter-allowances.*')}>
+                                            通勤定期
                                             </NavLink>
 
 
@@ -297,6 +307,27 @@
                                         active={route().current('dashboard')}
                                     >
                                         Dashboard
+                                    </ResponsiveNavLink>
+
+                                    <ResponsiveNavLink
+                                        href={route('attendances.index')}
+                                        active={route().current('attendances.*')}
+                                    >
+                                        勤怠履歴
+                                    </ResponsiveNavLink>
+
+                                    <ResponsiveNavLink
+                                        href={route('daily-reports.index')}
+                                        active={route().current('daily-reports.*')}
+                                    >
+                                        勤務日報
+                                    </ResponsiveNavLink>
+
+                                    <ResponsiveNavLink
+                                        href={route('commuter-allowances.index')}
+                                        active={route().current('commuter-allowances.*')}
+                                    >
+                                        通勤定期
                                     </ResponsiveNavLink>
 
                                     {isAdmin && (
